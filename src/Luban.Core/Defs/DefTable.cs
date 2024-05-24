@@ -71,7 +71,7 @@ public class DefTable : DefTypeBase
     {
         var ass = Assembly;
 
-        if ((ValueTType = (TBean)ass.CreateType(Namespace, ValueType, false)) == null)
+        if ((ValueTType = (TBean)ass.CreateType("", ValueType, false)) == null)
         {
             throw new Exception($"table:'{FullName}' 的 value类型:'{ValueType}' 不存在");
         }
