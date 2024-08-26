@@ -79,19 +79,19 @@ class UnityGUIJsonLoad : ITypeFuncVisitor<string, string, int, string>
             {
                 throw new SerializationException();
             }
-            {{x}} = {{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}.LoadJson{{type.DefBean.Name}}({{json}});
-            var {{__index}} = {{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}.Types.IndexOf({{x}}.GetTypeStr());
+            {{x}} = {{type.Apply(RawDefineTypeNameVisitor.Ins)}}.LoadJson{{type.DefBean.Name}}({{json}});
+            var {{__index}} = {{type.Apply(RawDefineTypeNameVisitor.Ins)}}.Types.IndexOf({{x}}.GetTypeStr());
             if ({{__index}} == -1)
             {
                 throw new SerializationException();
             }
             {{x}}.TypeIndex = {{__index}};
-            {{x}}.Instance = {{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}.LoadJson{{type.DefBean.Name}}({{json}});
+            {{x}}.Instance = {{type.Apply(RawDefineTypeNameVisitor.Ins)}}.LoadJson{{type.DefBean.Name}}({{json}});
             """;
         }
         else
         {
-            return $"if(!{json}.IsObject) {{ throw new SerializationException(); }}  {x} = {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}.LoadJson{type.DefBean.Name}({json});";
+            return $"if(!{json}.IsObject) {{ throw new SerializationException(); }}  {x} = {type.Apply(RawDefineTypeNameVisitor.Ins)}.LoadJson{type.DefBean.Name}({json});";
         }
     }
 

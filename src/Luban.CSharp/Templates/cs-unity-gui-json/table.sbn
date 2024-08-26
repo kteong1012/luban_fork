@@ -21,7 +21,7 @@ using UnityEngine;
     
     func table_key_list
         varName = $0
-        indexList = __table.index_list |array.each do; ret varName + '.' + (format_property_name __code_style $0.index_field.name); end;
+        indexList = __table.index_list |array.each do; ret varName + '.' + (format_field_name __code_style $0.index_field.name); end;
         ret array.join indexList ', '
     end
     
@@ -33,6 +33,14 @@ using UnityEngine;
     func table_param_name_list
         paramList = __table.index_list |array.each do; ret $0.index_field.name; end
         ret array.join paramList ', '
+    end
+
+    func ctor_data
+        if __value_type.def_bean.is_abstract_type
+            ret 'new ' + __value_type.def_bean.hierarchy_not_abstract_children[0].full_name + '()'
+        else
+            ret 'new ' + __value_type_name + '()'
+        end
     end
 
     __value_type_name = declaring_type_name __value_type
@@ -74,7 +82,7 @@ using UnityEngine;
                 {
                     foreach (var node in json.AsArray)
                     {
-                        var data = new {{__value_type_name}}();
+                        var data = {{ctor_data}};
                         var dataNode = (JSONObject)node;
                         data.LoadJson(dataNode);
                         _datas.Add(data);
@@ -83,7 +91,7 @@ using UnityEngine;
                 }
                 else
                 {
-                    var data = new {{__value_type_name}}();
+                    var data = {{ctor_data}};
                     data.LoadJson((JSONObject)json);
                     _datas.Add(data);
                     _originalDataJsons.Add(GetId(data), json.ToString(4));
@@ -190,7 +198,7 @@ using UnityEngine;
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
-                _datas.Add(new {{__value_type_name}}());
+                _datas.Add({{ctor_data}});
             }
             if (GUILayout.Button("-", GUILayout.Width(20)))
             {
@@ -259,7 +267,7 @@ using UnityEngine;
             return "{{__table.full_name}}";
 {{~ else if __table.is_list_table ~}}
     {{~ if __table.is_union_index ~}}
-            string GetUnionKey(param object[] keys)
+            string GetUnionKey(params object[] keys)
             {
                 return string.Join("|", keys.Select(key => key.ToString()));
             }
