@@ -2,7 +2,6 @@ using Luban.Types;
 using Luban.TypeVisitors;
 
 namespace Luban.CSharp.TypeVisitors;
-
 class EditorJsonLoad : ITypeFuncVisitor<string, string, string>
 {
     public static EditorJsonLoad Ins { get; } = new();

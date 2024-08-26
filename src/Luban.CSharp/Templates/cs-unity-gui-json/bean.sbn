@@ -1,0 +1,169 @@
+using System.Collections.Generic;
+using SimpleJSON;
+using Luban;
+using UnityEngine;
+using System.Linq;
+{{~ 
+    new_decorat = ''
+    if __bean.parent_def_type
+        new_decorat = 'new '
+    end
+~}}
+
+{{namespace_with_grace_begin __namespace_with_top_module}}
+
+{{~if __this.comment != '' ~}}
+/// <summary>
+/// {{escape_comment __this.comment}}
+/// </summary>
+{{~end~}}
+public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{__this.parent}} {{else}} Luban.EditorBeanBase {{end}}
+{
+    public {{__name}}()
+    {
+        {{~ for field in __fields ~}}
+        {{~if (need_init field.ctype) && !field.ctype.is_nullable ~}}
+            {{format_field_name __code_style field.name}} = {{init_value field.ctype}};
+        {{~end~}}
+        {{~end~}}
+    }
+        {{~if __bean.parent_def_type~}}
+    public override string GetTypeStr() => TYPE_STR;
+    private const string TYPE_STR = "{{__this.full_name}}";
+        {{~else if __this.is_abstract_type~}}
+    public abstract string GetTypeStr();
+        {{~end~}}
+
+    {{~if __this.is_abstract_type~}}
+    private int _typeIndex = -1;
+    public {{new_decorat}}int TypeIndex
+    {
+        get => _typeIndex;
+        set
+        {
+            if(_typeIndex == value)
+            {
+                return;
+            }
+            _typeIndex = value;
+            Instance = Create(Types[value]);
+        }
+    }
+    public {{new_decorat}}{{__name}} Instance { get; set;}
+    public {{new_decorat}}static List<string> Types = new List<string>()
+    {
+    {{~for field in __bean.hierarchy_not_abstract_children ~}}
+        "{{field.full_name}}",
+    {{~end~}}
+    };
+
+    public {{new_decorat}}static {{__name}} Create(string type)
+    {
+        switch (type)
+        {
+        {{~for child in __this.hierarchy_not_abstract_children~}}
+            {{~if child.namespace == __this.namespace && __this.namespace != '' ~}}
+            case "{{child.full_name}}":   
+            {{~end~}}
+            case "{{impl_data_type child __this}}":return new {{child.full_name}}();
+        {{~end~}}
+            default: return null;
+        }
+    }
+    {{~else~}}
+    public override void LoadJson(SimpleJSON.JSONObject _json)
+    {
+        {{~ for field in __hierarchy_fields ~}}
+        { 
+            var _fieldJson = _json["{{field.name}}"];
+            if (_fieldJson != null)
+            {
+                {{deserialize '_fieldJson' (format_field_name __code_style field.name) field.ctype}}
+            }
+        }
+        
+        {{~end~}}
+    }
+
+    public override void SaveJson(SimpleJSON.JSONObject _json)
+    {
+        {{~if parent~}}
+        _json["$type"] = "{{__this.full_name}}";
+        {{~end~}}
+        {{~ for field in __hierarchy_fields ~}}
+            {{~if field.ctype.is_nullable}}
+        if ({{format_field_name __code_style field.name}} != null)
+        {
+            {{serialize '_json' field.name (format_field_name __code_style field.name) field.ctype}}
+        }
+            {{~else~}}
+        {
+                {{~if (is_raw_nullable field.ctype) && !(is_unity_object_field_type field.ctype) ~}}
+            if ({{format_field_name __code_style field.name}} == null) { throw new System.ArgumentNullException(); }
+                {{~end~}}
+            {{serialize '_json' field.name (format_field_name __code_style field.name) field.ctype}}
+        }
+            {{~end~}}
+        {{~end~}}
+    }
+    {{~end~}}
+
+    private GUIStyle _areaStyle = new GUIStyle(GUI.skin.button);
+
+    public override void Render()
+    {
+        {{~ render_bean __this ~}}
+    }
+
+    public static {{__name}} LoadJson{{__name}}(SimpleJSON.JSONNode _json)
+    {
+    {{~if __this.is_abstract_type~}}
+        string type = _json["$type"];
+        {{__name}} obj;
+        switch (type)
+        {
+        {{~for child in __this.hierarchy_not_abstract_children~}}
+            {{~if child.namespace == __this.namespace && __this.namespace != '' ~}}
+            case "{{child.full_name}}":   
+            {{~end~}}
+            case "{{impl_data_type child __this}}":obj = new {{child.full_name}}(); break;
+        {{~end~}}
+            default: throw new SerializationException();
+        }
+    {{~else~}}
+        {{__name}} obj = new {{__this.full_name}}();
+    {{~end~}}
+        obj.LoadJson((SimpleJSON.JSONObject)_json);
+        return obj;
+    }
+        
+    public static void SaveJson{{__name}}({{__name}} _obj, SimpleJSON.JSONNode _json)
+    {
+    {{~if __this.is_abstract_type~}}
+        _json["$type"] = _obj.Instance.GetTypeStr();
+        _obj.Instance.SaveJson((SimpleJSON.JSONObject)_json);
+    {{~else~}}
+        _obj.SaveJson((SimpleJSON.JSONObject)_json);
+    {{~end~}}
+    }
+
+    {{~ for field in __fields ~}}
+{{~if field.comment != '' ~}}
+    /// <summary>
+    /// {{escape_comment field.comment}}
+    /// </summary>
+{{~end~}}
+    public {{declaring_type_name field.ctype}} {{format_field_name __code_style field.name}};
+    {{~end~}}
+
+    public override string ToString()
+    {
+        return "{{full_name}}{ "
+    {{~for field in __bean.hierarchy_export_fields ~}}
+        + "{{format_field_name __code_style field.name}}:" + {{to_pretty_string (format_field_name __code_style field.name) field.ctype}} + ","
+    {{~end~}}
+        + "}";
+    }
+}
+
+{{namespace_with_grace_end __namespace_with_top_module}}

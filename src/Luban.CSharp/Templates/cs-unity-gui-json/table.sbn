@@ -1,0 +1,299 @@
+using Luban;
+using SimpleJSON;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using UnityEditor;
+using UnityEditorInternal;
+using UnityEngine;
+
+{{
+    
+    func index_type_name
+        ret (declaring_type_name $0.type)
+    end
+    
+    func table_union_map_type_name
+        ret 'System.Collections.Generic.Dictionary<(' + (array.each __table.index_list @index_type_name | array.join ', ') + '), ' + (declaring_type_name __value_type)  + '>'
+    end
+    
+    func table_key_list
+        varName = $0
+        indexList = __table.index_list |array.each do; ret varName + '.' + (format_property_name __code_style $0.index_field.name); end;
+        ret array.join indexList ', '
+    end
+    
+    func table_param_def_list
+        paramList = __table.index_list |array.each do; ret (declaring_type_name $0.type) + ' ' + $0.index_field.name; end
+        ret array.join paramList ', '
+    end
+    
+    func table_param_name_list
+        paramList = __table.index_list |array.each do; ret $0.index_field.name; end
+        ret array.join paramList ', '
+    end
+
+    __value_type_name = declaring_type_name __value_type
+}}
+
+
+{{namespace_with_grace_begin __namespace_with_top_module}}
+{{~if __table.comment != '' ~}}
+/// <summary>
+/// {{escape_comment __table.comment}}
+/// </summary>
+{{~end~}}
+    public partial class {{__name}} : IConfigEditorTable
+    {
+        private List<{{__value_type_name}}> _datas = new List<{{__value_type_name}}>();
+        private readonly string _dataFilePath;
+        private readonly Dictionary<string, string> _originalDataJsons = new Dictionary<string, string>();
+        private string _originalTableJson;
+
+        public bool IsLoaded => _datas.Count > 0;
+        private string _name => "{{__name}}";
+
+
+        public {{__name}}(string dataFilePath)
+        {
+            _dataFilePath = dataFilePath;
+        }
+
+        public void Load()
+        {
+            _datas.Clear();
+            _originalDataJsons.Clear();
+
+            if (File.Exists(_dataFilePath))
+            {
+                var jsonText = File.ReadAllText(_dataFilePath);
+                var json = JSON.Parse(jsonText);
+                if (json.IsArray)
+                {
+                    foreach (var node in json.AsArray)
+                    {
+                        var data = new {{__value_type_name}}();
+                        var dataNode = (JSONObject)node;
+                        data.LoadJson(dataNode);
+                        _datas.Add(data);
+                        _originalDataJsons.Add(GetId(data), dataNode.ToString(4));
+                    }
+                }
+                else
+                {
+                    var data = new {{__value_type_name}}();
+                    data.LoadJson((JSONObject)json);
+                    _datas.Add(data);
+                    _originalDataJsons.Add(GetId(data), json.ToString(4));
+                }
+            }
+
+            _originalTableJson = GetTableJson();
+        }
+
+        public void Save()
+        {
+            for (int i = 0; i < _datas.Count; i++)
+            {
+                if (string.IsNullOrEmpty(GetId(_datas[i])))
+                {
+                    EditorUtility.DisplayDialog("提示", $"{_name}表第[{i}]个元素的id为空", "确定");
+                    return;
+                }
+            }
+{{~if __table.is_map_table ~}}
+            var ids = new Dictionary<string, List<int>>();
+            for (int i = 0; i < _datas.Count; i++)
+            {
+                var id = GetId(_datas[i]);
+                if (!ids.ContainsKey(id))
+                {
+                    ids.Add(id, new List<int>());
+                }
+                ids[id].Add(i);
+            }
+            var repeatIds = ids.Where(pair => pair.Value.Count > 1).Select(pair => pair.Key).ToList();
+            if (repeatIds.Count > 0)
+            {
+                var sb = new StringBuilder();
+                foreach (var id in repeatIds)
+                {
+                    sb.Append($"{id}重复出现在{string.Join(", ", ids[id])}\n");
+                }
+                EditorUtility.DisplayDialog("提示", $"{_name}表id重复\n{sb}", "确定");
+                return;
+            }
+{{~end~}}
+
+            var jsonText = GetTableJson();
+            File.WriteAllText(_dataFilePath, jsonText);
+
+            _originalDataJsons.Clear();
+            foreach (var data in _datas)
+            {
+                _originalDataJsons.Add(GetId(data), GetDataJson(data));
+            }
+            _originalTableJson = jsonText;
+        }
+
+        private string GetTableJson()
+        {
+            var jsonArray = new JSONArray();
+            foreach (var data in _datas)
+            {
+                var json = new JSONObject();
+                data.SaveJson(json);
+                jsonArray.Add(json);
+            }
+            return jsonArray.ToString(4);
+        }
+
+        private string GetDataJson({{__value_type_name}} data)
+        {
+            var json = new JSONObject();
+            data?.SaveJson(json);
+            return json.ToString(4);
+        }
+
+
+        private Vector2 _idScrollPos;
+        private Vector2 _dataScrollPos;
+        private int _selectIndex;
+        public void OnGUI()
+        {
+            GUILayout.BeginHorizontal("Box");
+            GUILayout.BeginVertical("Box");
+            _idScrollPos = GUILayout.BeginScrollView(_idScrollPos, GUILayout.Width(200));
+            for (int i = 0; i < _datas.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+                if (_selectIndex == i)
+                {
+                    GUI.color = Color.cyan;
+                }
+                else
+                {
+                    GUI.color = Color.white;
+                }
+                EditorGUILayout.LabelField($"[{i}]", GUILayout.Width(20));
+                if (GUILayout.Button(GetId(_datas[i])))
+                {
+                    _selectIndex = i;
+                }
+                GUI.color = Color.white;
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("+", GUILayout.Width(20)))
+            {
+                _datas.Add(new {{__value_type_name}}());
+            }
+            if (GUILayout.Button("-", GUILayout.Width(20)))
+            {
+                if (_selectIndex >= 0 && _selectIndex < _datas.Count)
+                {
+                    _datas.RemoveAt(_selectIndex);
+                    if (_selectIndex >= _datas.Count)
+                    {
+                        _selectIndex = _datas.Count - 1;
+                    }
+                }
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+            GUILayout.BeginVertical("Box");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("复制Json", GUILayout.Width(100)))
+            {
+                if (SelectData != null)
+                {
+                    var text = GetDataJson(SelectData);
+                    GUIUtility.systemCopyBuffer = text;
+                    EditorUtility.DisplayDialog("提示", $"已复制到剪切板:\n{text}", "确定");
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("提示", "请选择数据", "确定");
+                }
+            }
+            if (GUILayout.Button("预览差异", GUILayout.Width(100)))
+            {
+                if (SelectData != null)
+                {
+                    var id = GetId(SelectData);
+                    var originalJson = "";
+                    var newJson = GetDataJson(SelectData);
+                    _originalDataJsons.TryGetValue(id, out originalJson);
+                    FileDiffTool.ShowWindow(originalJson, newJson, $"{_name}:{id}");
+                }
+            }
+            if (GUILayout.Button("预览表差异", GUILayout.Width(100)))
+            {
+                var originalJson = _originalTableJson;
+                var newJson = GetTableJson();
+                FileDiffTool.ShowWindow(originalJson, newJson, _name);
+            }
+            GUILayout.EndHorizontal();
+            _dataScrollPos = GUILayout.BeginScrollView(_dataScrollPos);
+            SelectData?.Render();
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+        }
+
+        private string GetId({{__value_type_name}} data)
+        {
+            if (data == null)
+            {
+                throw new Exception("data is null");
+            }
+{{~ if __table.is_map_table ~}}
+            return data.{{format_field_name __code_style __table.index_field.name}}.ToString();
+{{~ else if __table.is_singleton_table ~}}
+            return "{{__table.full_name}}";
+{{~ else if __table.is_list_table ~}}
+    {{~ if __table.is_union_index ~}}
+            string GetUnionKey(param object[] keys)
+            {
+                return string.Join("|", keys.Select(key => key.ToString()));
+            }
+            return GetUnionKey({{table_key_list 'data'}});
+    {{~ else ~}}
+            return _datas.IndexOf(data).ToString();
+    {{~ end ~}}
+{{~ end ~}}
+        }
+
+        public void Sort()
+        {
+            var temp = GetId(SelectData);
+            _datas = _datas.OrderBy(data => Convert.ToInt64(GetId(data))).ToList();
+            if (!string.IsNullOrEmpty(temp))
+            {
+                _selectIndex = _datas.FindIndex(data => GetId(data) == temp);
+            }
+        }
+
+        public void ResolveRef({{__manager_name}} tables)
+        {
+        }
+
+        private {{__value_type_name}} SelectData
+        {
+            get
+            {
+                if (_selectIndex >= 0 && _selectIndex < _datas.Count)
+                {
+                    return _datas[_selectIndex];
+                }
+                return null;
+            }
+        }
+    }
+{{namespace_with_grace_end __namespace_with_top_module}}

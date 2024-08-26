@@ -6,7 +6,6 @@ namespace Luban.CSharp.TemplateExtensions;
 
 public class CsharpEditorTemplateExtension : ScriptObject
 {
-
     public static string DeclaringTypeName(TType type)
     {
         return type.Apply(EditorDeclaringTypeNameVisitor.Ins);

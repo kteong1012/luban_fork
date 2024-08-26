@@ -1,0 +1,117 @@
+using UnityEditor;
+using SimpleJSON;
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+
+{{namespace_with_grace_begin __namespace}}
+    public interface IConfigEditorTable
+    {
+        void Load();
+        void Save();
+        void OnGUI();
+        void Sort();
+        bool IsLoaded { get; }
+        void ResolveRef({{__name}} tables);
+    }
+
+    public partial class {{__name}}
+    {
+        private const string _jsonConfigDirPath = "Config/Datas/DataJson";
+        private string _currentTable = "";
+        private Dictionary<string, IConfigEditorTable> _tables;
+        private string[] _tableNames;
+
+        public string CurrentTable => _currentTable;
+
+        public {{__name}}(System.Func<string, string> pathFunc)
+        {
+            _tables = new Dictionary<string, IConfigEditorTable>();
+            var path = string.Empty;
+            {{~for table in __tables ~}}
+            path = pathFunc("{{table.output_data_file}}");
+            if (!string.IsNullOrEmpty(path))
+            {
+                _tables.Add("{{table.full_name}}", new {{table.full_name}}(path));
+            }
+            {{~end~}}
+
+            _tableNames = _tables.Keys.ToArray();
+            ResolveRef();
+        }
+
+        public void SaveAll()
+        {
+            foreach (var data in _tables)
+            {
+                data.Value.Save();
+            }
+        }
+
+
+        private IConfigEditorTable LoadTable(string tableName, bool forceLoad = false)
+        {
+            if (!_tables.TryGetValue(_currentTable, out var table))
+            {
+                return null;
+            }
+            if (forceLoad || !table.IsLoaded)
+            {
+                table.Load();
+            }
+            return table;
+        }
+
+        public void ReloadAll()
+        {
+            foreach (var key in _tables.Keys)
+            {
+                LoadTable(key, true);
+            }
+        }
+
+        public void OnGUI()
+        {
+            DrawTopBar();
+            DrawTable();
+        }
+
+        public void DrawTopBar()
+        {
+            GUILayout.BeginHorizontal();
+            
+            var index = System.Array.IndexOf(_tableNames, _currentTable);
+            if (index < 0)
+            {
+                index = 0;
+            }
+            index = EditorGUILayout.Popup(index, _tableNames, GUILayout.Width(100));
+            _currentTable = _tableNames[index];
+
+
+            if (GUILayout.Button("Save", GUILayout.Width(100)))
+            {
+                SaveAll();
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            ConfigEditorSettings.showComment = GUILayout.Toggle(ConfigEditorSettings.showComment, "Show Comment", GUILayout.Width(120));
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawTable()
+        {
+            var table = LoadTable(_currentTable);
+            table?.OnGUI();
+        }
+
+        private void ResolveRef()
+        {
+            foreach (var table in _tables)
+            {
+                table.Value.ResolveRef(this);
+            }
+        }
+    }
+    
+{{namespace_with_grace_end __namespace}}

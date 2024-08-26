@@ -86,4 +86,12 @@ public static class DefExtensions
         }
         return null;
     }
+    public static string GetCommentOrName(this DefField f)
+    {
+        if (!string.IsNullOrWhiteSpace(f.Comment))
+        {
+            return f.Comment;
+        }
+        return f.Name;
+    }
 }
