@@ -45,7 +45,7 @@ public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TEnum type)
     {
-        return $"{(type.DefEnum.Items.Count > 0 ? $"{type.Apply(EditorUnderlyingTypeNameVisitor.Ins)}." + type.DefEnum.Items[0].Name : "default")}";
+        return $"{(type.DefEnum.Items.Count > 0 ? $"{type.Apply(RawDefineTypeNameVisitor.Ins)}." + type.DefEnum.Items[0].Name : "default")}";
     }
 
     public string Accept(TString type)

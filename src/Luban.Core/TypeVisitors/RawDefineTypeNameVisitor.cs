@@ -43,7 +43,7 @@ public class RawDefineTypeNameVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TEnum type)
     {
-        return type.DefEnum.FullName;
+        return type.DefEnum.FullNameWithTopModule;
     }
 
     public string Accept(TString type)
@@ -58,7 +58,7 @@ public class RawDefineTypeNameVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TBean type)
     {
-        return type.DefBean.FullName;
+        return type.DefBean.FullNameWithTopModule;
     }
 
     public string Accept(TArray type)
