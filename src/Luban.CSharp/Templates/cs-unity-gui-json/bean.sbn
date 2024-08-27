@@ -80,6 +80,12 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             {
                 {{deserialize '_fieldJson' (format_field_name __code_style field.name) field.ctype}}
             }
+            else
+            {
+                {{~ if need_init field.ctype ~}}
+                {{format_field_name __code_style field.name}} = {{init_value field.ctype}};
+                {{~ end ~}}
+            }
         }
         
         {{~end~}}

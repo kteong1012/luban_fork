@@ -30,6 +30,10 @@ public class CsharpUnityGUIJsonTemplateExtension : ScriptObject
 
     public static bool NeedInit(TType type)
     {
+        if (type.IsNullable)
+        {
+            return true;
+        }
         return type.Apply(EditorNeedInitVisitor.Ins);
     }
 

@@ -73,6 +73,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
     public string Accept(TEnum type, string fieldName, int depth)
     {
         return $$"""
+
         {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}})UnityEditor.EditorGUILayout.EnumPopup({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
         """;
     }
@@ -220,7 +221,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
                 var {{__list}} = new System.Collections.Generic.List<{{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}>({{fieldName}});
-                {{__list}}.Add({{type.ElementType.Apply(UnityGUIDefaultValueVisitor.Ins)}});
+                {{__list}}.Add({{type.ElementType.Apply(UnityGUIInitValueVisitor.Ins)}});
                 {{fieldName}} = {{__list}}.ToArray();
             }
             if (GUILayout.Button("import", GUILayout.Width(100)))
@@ -272,7 +273,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             UnityEditor.EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
-                {{fieldName}}.Add({{type.ElementType.Apply(UnityGUIDefaultValueVisitor.Ins)}});
+                {{fieldName}}.Add({{type.ElementType.Apply(UnityGUIInitValueVisitor.Ins)}});
             }
             if (GUILayout.Button("import", GUILayout.Width(100)))
             {
@@ -317,7 +318,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             }
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
-                {{fieldName}}.Add({{type.ElementType.Apply(UnityGUIDefaultValueVisitor.Ins)}});
+                {{fieldName}}.Add({{type.ElementType.Apply(UnityGUIInitValueVisitor.Ins)}});
             }
             UnityEditor.EditorGUILayout.EndVertical();
         }
@@ -348,8 +349,8 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 }
                 UnityEditor.EditorGUILayout.LabelField({{__i}}.ToString(), GUILayout.Width(20));
                 var {{__e}} = {{fieldName}}[{{__i}}];
-                {{type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__key}} = {{type.KeyType.Apply(UnityGUIDefaultValueVisitor.Ins)}};
-                {{type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__value}} = {{type.ValueType.Apply(UnityGUIDefaultValueVisitor.Ins)}};
+                {{type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__key}} = {{type.KeyType.Apply(UnityGUIInitValueVisitor.Ins)}};
+                {{type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__value}} = {{type.ValueType.Apply(UnityGUIInitValueVisitor.Ins)}};
                 if ({{__e}} == null)
                 {
                     {{__e}} = new object[2] { {{__key}}, {{__value}} };

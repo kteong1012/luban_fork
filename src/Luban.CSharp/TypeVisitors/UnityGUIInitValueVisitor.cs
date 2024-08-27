@@ -1,48 +1,54 @@
 ﻿using Luban.CSharp.TemplateExtensions;
 using Luban.Types;
+using Luban.TypeVisitors;
 
 namespace Luban.CSharp.TypeVisitors;
 
-public class UnityGUIInitValueVisitor : CtorDefaultValueVisitor
+public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
 {
     public new static UnityGUIInitValueVisitor Ins { get; } = new();
 
-    public override string Accept(TEnum type)
+    public string Accept(TBool type)
     {
-        return $"{(type.DefEnum.Items.Count > 0 ? $"{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}." + type.DefEnum.Items[0].Name : "default")}";
+        return "false";
     }
 
-    public override string Accept(TDateTime type)
+    public string Accept(TByte type)
     {
-        return "\"1970-01-01 00:00:00\"";
+        return "0";
     }
 
-    public override string Accept(TBean type)
+    public string Accept(TShort type)
     {
-        return type.IsNullable || type.DefBean.IsAbstractType ? "default" : $"new {type.Apply(EditorUnderlyingTypeNameVisitor.Ins)}()";
+        return "0";
     }
 
-    public override string Accept(TArray type)
+    public string Accept(TInt type)
     {
-        return $"System.Array.Empty<{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}>()";
+        return "0";
     }
 
-    public override string Accept(TList type)
+    public string Accept(TLong type)
     {
-        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}>()";
+        return "0";
     }
 
-    public override string Accept(TSet type)
+    public string Accept(TFloat type)
     {
-        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}>()";
+        return "0";
     }
 
-    public override string Accept(TMap type)
+    public string Accept(TDouble type)
     {
-        return $"new {ConstStrings.ListTypeName}<object[]>()";
+        return "0";
     }
 
-    public override string Accept(TString type)
+    public string Accept(TEnum type)
+    {
+        return $"{(type.DefEnum.Items.Count > 0 ? $"{type.Apply(EditorUnderlyingTypeNameVisitor.Ins)}." + type.DefEnum.Items[0].Name : "default")}";
+    }
+
+    public string Accept(TString type)
     {
         if (CsharpUnityGUIJsonTemplateExtension.IsUnityObjectFieldType(type))
         {
@@ -52,5 +58,42 @@ public class UnityGUIInitValueVisitor : CtorDefaultValueVisitor
         {
             return "\"\"";
         }
+    }
+
+    public string Accept(TDateTime type)
+    {
+        return "\"1970-01-01 00:00:00\"";
+    }
+
+    public string Accept(TBean type)
+    {
+        if (type.DefBean.IsAbstractType)
+        {
+            return $"new {type.DefBean.HierarchyNotAbstractChildren[0].FullName}(){{ TypeIndex = 0}}";
+        }
+        else
+        {
+            return $"new {type.Apply(EditorUnderlyingTypeNameVisitor.Ins)}()";
+        }
+    }
+
+    public string Accept(TArray type)
+    {
+        return $"System.Array.Empty<{type.ElementType.Apply(EditorUnderlyingTypeNameVisitor.Ins)}>()";
+    }
+
+    public string Accept(TList type)
+    {
+        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(EditorUnderlyingTypeNameVisitor.Ins)}>()";
+    }
+
+    public string Accept(TSet type)
+    {
+        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(EditorUnderlyingTypeNameVisitor.Ins)}>()";
+    }
+
+    public string Accept(TMap type)
+    {
+        return $"new {ConstStrings.ListTypeName}<object[]>()";
     }
 }
