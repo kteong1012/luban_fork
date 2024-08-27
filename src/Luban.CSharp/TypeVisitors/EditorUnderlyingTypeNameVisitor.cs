@@ -51,14 +51,7 @@ public class EditorUnderlyingTypeNameVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TString type)
     {
-        if (CsharpUnityGUIJsonTemplateExtension.IsUnityObjectFieldType(type))
-        {
-            return "UnityEngine.Object";
-        }
-        else
-        {
-            return "string";
-        }
+        return "string";
     }
 
     public string Accept(TBean type)

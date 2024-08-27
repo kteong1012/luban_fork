@@ -14,10 +14,6 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
 
     private string FieldValueName(TType type, string fieldName)
     {
-        if (type.IsNullable)
-        {
-            return $"{fieldName}.Value";
-        }
         return fieldName;
     }
 

@@ -9,37 +9,37 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
 
     public string Accept(TBool type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONBool({value}{(type.IsNullable ? ".Value" : "")});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONBool({value});";
     }
 
     public string Accept(TByte type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value});";
     }
 
     public string Accept(TShort type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value});";
     }
 
     public string Accept(TInt type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value});";
     }
 
     public string Accept(TLong type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value});";
     }
 
     public string Accept(TFloat type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value});";
     }
 
     public string Accept(TDouble type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value});";
     }
 
     public string Accept(TEnum type, string jsonName, string jsonFieldName, string value, int depth)

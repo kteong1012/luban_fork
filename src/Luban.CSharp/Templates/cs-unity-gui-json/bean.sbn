@@ -97,7 +97,7 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
         _json["$type"] = "{{__this.full_name}}";
         {{~end~}}
         {{~ for field in __hierarchy_fields ~}}
-            {{~if field.ctype.is_nullable}}
+            {{~if is_raw_nullable field.ctype}}
         if ({{format_field_name __code_style field.name}} != null)
         {
             {{serialize '_json' field.name (format_field_name __code_style field.name) field.ctype}}

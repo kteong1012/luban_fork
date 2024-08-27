@@ -6,7 +6,7 @@ namespace Luban.CSharp.TypeVisitors;
 
 public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
 {
-    public new static UnityGUIInitValueVisitor Ins { get; } = new();
+    public static UnityGUIInitValueVisitor Ins { get; } = new();
 
     public string Accept(TBool type)
     {
@@ -73,23 +73,23 @@ public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
         }
         else
         {
-            return $"new {type.Apply(EditorUnderlyingTypeNameVisitor.Ins)}()";
+            return $"new {type.Apply(RawDefineTypeNameVisitor.Ins)}()";
         }
     }
 
     public string Accept(TArray type)
     {
-        return $"System.Array.Empty<{type.ElementType.Apply(EditorUnderlyingTypeNameVisitor.Ins)}>()";
+        return $"System.Array.Empty<{type.ElementType.Apply(RawDefineTypeNameVisitor.Ins)}>()";
     }
 
     public string Accept(TList type)
     {
-        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(EditorUnderlyingTypeNameVisitor.Ins)}>()";
+        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(RawDefineTypeNameVisitor.Ins)}>()";
     }
 
     public string Accept(TSet type)
     {
-        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(EditorUnderlyingTypeNameVisitor.Ins)}>()";
+        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(RawDefineTypeNameVisitor.Ins)}>()";
     }
 
     public string Accept(TMap type)

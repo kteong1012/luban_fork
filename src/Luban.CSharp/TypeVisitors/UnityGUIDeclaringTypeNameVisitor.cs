@@ -8,7 +8,13 @@ public class UnityGUIDeclaringTypeNameVisitor : DeclaringTypeNameVisitor
 {
     public new static UnityGUIDeclaringTypeNameVisitor Ins { get; } = new();
 
-    protected override ITypeFuncVisitor<string> UnderlyingVisitor => EditorUnderlyingTypeNameVisitor.Ins;
+    protected override ITypeFuncVisitor<string> UnderlyingVisitor => RawDefineTypeNameVisitor.Ins;
+
+    public override string DoAccept(TType type)
+    {
+        return type.Apply(UnderlyingVisitor);
+    }
+
 
     public override string Accept(TDateTime type)
     {
@@ -27,7 +33,7 @@ public class UnityGUIDeclaringTypeNameVisitor : DeclaringTypeNameVisitor
 
     public override string Accept(TString type)
     {
-        if(CsharpUnityGUIJsonTemplateExtension.IsUnityObjectFieldType(type))
+        if (CsharpUnityGUIJsonTemplateExtension.IsUnityObjectFieldType(type))
         {
             return "UnityEngine.Object";
         }
