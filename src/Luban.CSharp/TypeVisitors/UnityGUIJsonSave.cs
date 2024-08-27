@@ -72,7 +72,7 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
 
     public string Accept(TBean type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{{ var __bjson = new JSONObject();  {type.Apply(EditorUnderlyingTypeNameVisitor.Ins)}.SaveJson{type.DefBean.Name}({value}, __bjson); {jsonName}[\"{jsonFieldName}\"] = __bjson; }}";
+        return $"{{ var __bjson = new JSONObject();  {type.Apply(RawDefineTypeNameVisitor.Ins)}.SaveJson{type.DefBean.Name}({value}, __bjson); {jsonName}[\"{jsonFieldName}\"] = __bjson; }}";
     }
 
     public string Accept(TArray type, string jsonName, string jsonFieldName, string value, int depth)
@@ -114,8 +114,8 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
         var __e = $"__e{depth}";
         var __cjson = $"__cjson{depth}";
         var __entry = $"__entry{depth}";
-        var keyTypeStr = type.KeyType.Apply(EditorUnderlyingTypeNameVisitor.Ins);
-        var valueTypeStr = type.ValueType.Apply(EditorUnderlyingTypeNameVisitor.Ins);
+        var keyTypeStr = type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins);
+        var valueTypeStr = type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins);
 
         return $$"""
         {
