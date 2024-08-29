@@ -20,8 +20,6 @@ using System;
 {{~end~}}
 public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{__this.parent}} {{else}} Luban.EditorBeanBase {{end}}
 {
-    private Action<Luban.EditorBeanBase> _setChangeAction;
-    public void SetChangeAction(Action<Luban.EditorBeanBase> action) => _setChangeAction = action;
     public {{__name}}(Action<Luban.EditorBeanBase> setChangeAction = null) {{if __bean.parent_def_type }} : base(setChangeAction) {{end}}
     {
         _setChangeAction = setChangeAction;
