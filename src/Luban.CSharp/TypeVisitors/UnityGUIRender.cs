@@ -122,6 +122,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             var __newIndex = $"__newIndex{depth}";
             var __type = $"__type{depth}";
             var __impl = $"__impl{depth}";
+            var __x = $"__x";
 
             var createNewLine = "";
             if (type.DefBean.HierarchyNotAbstractChildren.Count > 0)
@@ -130,6 +131,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 {
                     createNewLine = $$"""
                     {{fieldName}} = new {{type.DefBean.HierarchyNotAbstractChildren[0].FullName}}();
+                    {{fieldName}}.SetChangeAction(({{__x}}) => { {{fieldName}} = {{__x}} as {{type.DefBean.FullName}}; });
                     """;
                 }
             }
@@ -354,8 +356,8 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 }
                 else
                 {
-                    {{__key}} = ({{type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[0];
-                    {{__value}} = ({{type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[1];
+                    {{__key}} = {{__e}}[0] != null ? ({{type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[0] : default;
+                    {{__value}} = {{__e}}[1] != null ? ({{type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[1] : default;
                 }
                 {{type.KeyType.Apply(this, __key, depth + 1)}};
                 {{type.ValueType.Apply(this, __value, depth + 1)}};

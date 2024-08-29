@@ -35,7 +35,7 @@ public class UnderlyingDeclaringTypeNameVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TFloat type)
     {
-        return "double";
+        return "float";
     }
 
     public string Accept(TDouble type)
