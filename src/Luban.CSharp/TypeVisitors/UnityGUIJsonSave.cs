@@ -67,7 +67,7 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
 
     public string Accept(TDateTime type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONString({value});";
+        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value});";
     }
 
     public string Accept(TBean type, string jsonName, string jsonFieldName, string value, int depth)
@@ -83,7 +83,7 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
         var __i = $"__i{depth}";
         var __n = $"__n{depth}";
         var __cjson = $"__cjson{depth}";
-        return $"{{ var {__cjson} = new JSONArray(); foreach(var {__e} in {value}) {{ {type.ElementType.Apply(this, __cjson, "null", __e, depth++)} }} {jsonName}[\"{jsonFieldName}\"] = {__cjson}; }}";
+        return $"{{ var {__cjson} = new JSONArray(); foreach(var {__e} in {value}) {{ {type.ElementType.Apply(this, __cjson, "null", __e, depth++)} }} {__cjson}.Inline = {__cjson}.Count == 0; {jsonName}[\"{jsonFieldName}\"] = {__cjson}; }}";
     }
 
     public string Accept(TList type, string jsonName, string jsonFieldName, string value, int depth)
@@ -94,7 +94,7 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
         var __i = $"__i{depth}";
         var __n = $"__n{depth}";
         var __cjson = $"__cjson{depth}";
-        return $"{{ var {__cjson} = new JSONArray(); foreach(var {__e} in {value}) {{ {type.ElementType.Apply(this, __cjson, "null", __e, depth++)} }} {jsonName}[\"{jsonFieldName}\"] = {__cjson}; }}";
+        return $"{{ var {__cjson} = new JSONArray(); foreach(var {__e} in {value}) {{ {type.ElementType.Apply(this, __cjson, "null", __e, depth++)} }} {__cjson}.Inline = {__cjson}.Count == 0; {jsonName}[\"{jsonFieldName}\"] = {__cjson}; }}";
     }
 
     public string Accept(TSet type, string jsonName, string jsonFieldName, string value, int depth)
@@ -105,7 +105,7 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
         var __i = $"__i{depth}";
         var __n = $"__n{depth}";
         var __cjson = $"__cjson{depth}";
-        return $"{{ var {__cjson} = new JSONArray(); foreach(var {__e} in {value}) {{ {type.ElementType.Apply(this, __cjson, "null", __e, depth++)} }} {jsonName}[\"{jsonFieldName}\"] = {__cjson}; }}";
+        return $"{{ var {__cjson} = new JSONArray(); foreach(var {__e} in {value}) {{ {type.ElementType.Apply(this, __cjson, "null", __e, depth++)} }} {__cjson}.Inline = {__cjson}.Count == 0; {jsonName}[\"{jsonFieldName}\"] = {__cjson}; }}";
     }
 
     public string Accept(TMap type, string jsonName, string jsonFieldName, string value, int depth)
@@ -127,6 +127,7 @@ class UnityGUIJsonSave : ITypeFuncVisitor<string, string, string, int, string>
                 {{type.KeyType.Apply(this, __entry, "null", $"({keyTypeStr}){__e}[0]", depth + 1)}}
                 {{type.ValueType.Apply(this, __entry, "null", $"({valueTypeStr}){__e}[1]", depth + 1)}}
             }
+            {{__cjson}}.Inline = {{__cjson}}.Count == 0;
             {{jsonName}}["{{jsonFieldName}}"] = {{__cjson}};
         }
         """;

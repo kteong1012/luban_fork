@@ -55,7 +55,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
     public string Accept(TFloat type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = UnityEditor.EditorGUILayout.FloatField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = UnityEditor.EditorGUILayout.DoubleField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
         """;
     }
 
@@ -111,7 +111,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
 
     public string Accept(TDateTime type, string fieldName, int depth)
     {
-        return $"{fieldName} = UnityEditor.EditorGUILayout.TextField({fieldName}, GUILayout.Width(150));";
+        return $"{fieldName} = UnityEditor.EditorGUILayout.LongField({fieldName}, GUILayout.Width(150));";
     }
 
     public string Accept(TBean type, string fieldName, int depth)
@@ -126,7 +126,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             var createNewLine = "";
             if (type.DefBean.HierarchyNotAbstractChildren.Count > 0)
             {
-                if (fieldName != "this")
+                if (fieldName != "this" && fieldName != "__SelectData")
                 {
                     createNewLine = $$"""
                     {{fieldName}} = new {{type.DefBean.HierarchyNotAbstractChildren[0].FullName}}();
@@ -147,7 +147,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 UnityEditor.EditorGUILayout.LabelField("类型", GUILayout.Width(100));
                 {{fieldName}}.TypeIndex = UnityEditor.EditorGUILayout.Popup({{fieldName}}.TypeIndex, {{__list}}, GUILayout.Width(200));
                 UnityEditor.EditorGUILayout.EndHorizontal();
-                {{fieldName}}.Instance.Render();
+                {{fieldName}}?.Render();
                 UnityEditor.EditorGUILayout.EndVertical();
             }
             """;

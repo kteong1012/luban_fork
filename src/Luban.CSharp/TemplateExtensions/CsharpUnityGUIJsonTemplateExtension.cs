@@ -2,6 +2,7 @@
 using Luban.DataLoader;
 using Luban.Defs;
 using Luban.Types;
+using Luban.Utils;
 using Scriban.Runtime;
 
 namespace Luban.CSharp.TemplateExtensions;
@@ -41,10 +42,10 @@ public class CsharpUnityGUIJsonTemplateExtension : ScriptObject
     {
         return type.Apply(UnityGUIInitValueVisitor.Ins);
     }
-    public static string RenderBean(DefBean defBean)
+    public static string RenderBean(DefBean defBean, string name)
     {
         var ttype = TBean.Create(false, defBean, new Dictionary<string, string>());
-        return ttype.Apply(UnityGUIRender.Ins, "this", 0);
+        return ttype.Apply(UnityGUIRender.Ins, name, 0);
     }
 
     public static bool IsUnityObjectFieldType(TType type)
@@ -128,5 +129,12 @@ public class CsharpUnityGUIJsonTemplateExtension : ScriptObject
         {
             throw new Exception($"unknown unity object type: {objType}");
         }
+    }
+
+    public static string GetImplTypeName(DefBean defBean)
+    {
+        var parentDefBean = defBean.ParentDefType;
+
+        return DataUtil.GetImplTypeName(defBean, parentDefBean);
     }
 }

@@ -71,6 +71,7 @@ class UnityGUIJsonLoad : ITypeFuncVisitor<string, string, int, string>
     {
         if (type.DefBean.IsAbstractType)
         {
+            var __newIns = $"__newIns{depth}";
             var __index = $"__index{depth}";
             return
             $$"""
@@ -79,14 +80,13 @@ class UnityGUIJsonLoad : ITypeFuncVisitor<string, string, int, string>
             {
                 throw new SerializationException();
             }
-            {{x}} = {{type.Apply(RawDefineTypeNameVisitor.Ins)}}.LoadJson{{type.DefBean.Name}}({{json}});
+            {{x}} = {{type.Apply(RawDefineTypeNameVisitor.Ins)}}.LoadJson{{type.DefBean.Name}}({{json}}, ({{__newIns}})=>{ {{x}} = {{__newIns}} as {{type.DefBean.FullName}} ; });
             var {{__index}} = {{type.Apply(RawDefineTypeNameVisitor.Ins)}}.Types.IndexOf({{x}}.GetTypeStr());
             if ({{__index}} == -1)
             {
                 throw new SerializationException();
             }
             {{x}}.TypeIndex = {{__index}};
-            {{x}}.Instance = {{type.Apply(RawDefineTypeNameVisitor.Ins)}}.LoadJson{{type.DefBean.Name}}({{json}});
             """;
         }
         else

@@ -62,14 +62,16 @@ public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TDateTime type)
     {
-        return "\"1970-01-01 00:00:00\"";
+        return "0";
     }
 
     public string Accept(TBean type)
     {
         if (type.DefBean.IsAbstractType)
         {
-            return $"new {type.DefBean.HierarchyNotAbstractChildren[0].FullName}(){{ TypeIndex = 0}}";
+            return $$"""
+            new {{type.DefBean.HierarchyNotAbstractChildren[0].FullName}}()
+            """;
         }
         else
         {

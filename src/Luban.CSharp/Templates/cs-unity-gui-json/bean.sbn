@@ -3,6 +3,7 @@ using SimpleJSON;
 using Luban;
 using UnityEngine;
 using System.Linq;
+using System;
 {{~ 
     new_decorat = ''
     if __bean.parent_def_type
@@ -19,17 +20,20 @@ using System.Linq;
 {{~end~}}
 public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{__this.parent}} {{else}} Luban.EditorBeanBase {{end}}
 {
-    public {{__name}}()
+    private Action<Luban.EditorBeanBase> _setChangeAction;
+    public void SetChangeAction(Action<Luban.EditorBeanBase> action) => _setChangeAction = action;
+    public {{__name}}(Action<Luban.EditorBeanBase> setChangeAction = null) {{if __bean.parent_def_type }} : base(setChangeAction) {{end}}
     {
+        _setChangeAction = setChangeAction;
         {{~ for field in __fields ~}}
         {{~if (need_init field.ctype) && !field.ctype.is_nullable ~}}
             {{format_field_name __code_style field.name}} = {{init_value field.ctype}};
         {{~end~}}
         {{~end~}}
     }
-        {{~if __bean.parent_def_type~}}
+        {{~if __bean.parent_def_type ~}}
     public override string GetTypeStr() => TYPE_STR;
-    private const string TYPE_STR = "{{__this.full_name}}";
+    private const string TYPE_STR = "{{get_impl_type_name __bean}}";
         {{~else if __this.is_abstract_type~}}
     public abstract string GetTypeStr();
         {{~end~}}
@@ -46,18 +50,18 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
                 return;
             }
             _typeIndex = value;
-            Instance = Create(Types[value]);
+            var obj = Create(Types[value], _setChangeAction);
+            _setChangeAction(obj);
         }
     }
-    public {{new_decorat}}{{__name}} Instance { get; set;}
     public {{new_decorat}}static List<string> Types = new List<string>()
     {
-    {{~for field in __bean.hierarchy_not_abstract_children ~}}
-        "{{field.full_name}}",
+    {{~for child in __bean.hierarchy_not_abstract_children ~}}
+        "{{get_impl_type_name child}}",
     {{~end~}}
     };
 
-    public {{new_decorat}}static {{__name}} Create(string type)
+    public {{new_decorat}}static {{__name}} Create(string type, Action<Luban.EditorBeanBase> setChangeAction)
     {
         switch (type)
         {
@@ -65,7 +69,12 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             {{~if child.namespace == __this.namespace && __this.namespace != '' ~}}
             case "{{child.full_name}}":   
             {{~end~}}
-            case "{{impl_data_type child __this}}":return new {{child.full_name}}();
+            case "{{impl_data_type child __this}}":
+            {
+                var obj = new {{child.full_name}}(setChangeAction);
+                obj._typeIndex = Types.IndexOf(type);
+                return obj;
+            }
         {{~end~}}
             default: return null;
         }
@@ -84,6 +93,9 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             {
                 {{~ if need_init field.ctype ~}}
                 {{format_field_name __code_style field.name}} = {{init_value field.ctype}};
+                    {{~ if field.ctype.type_name == 'bean' ~}}
+                {{format_field_name __code_style field.name}}.SetChangeAction((__x) => {{format_field_name __code_style field.name}} = __x as {{declaring_type_name field.ctype}});
+                    {{~ end ~}}
                 {{~ end ~}}
             }
         }
@@ -94,7 +106,7 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
     public override void SaveJson(SimpleJSON.JSONObject _json)
     {
         {{~if parent~}}
-        _json["$type"] = "{{__this.full_name}}";
+        _json["$type"] = "{{get_impl_type_name __bean}}";
         {{~end~}}
         {{~ for field in __hierarchy_fields ~}}
             {{~if is_raw_nullable field.ctype}}
@@ -118,10 +130,9 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
 
     public override void Render()
     {
-        {{~ render_bean __this ~}}
+        {{~ render_bean __this 'this' ~}}
     }
-
-    public static {{__name}} LoadJson{{__name}}(SimpleJSON.JSONNode _json)
+    public static {{__name}} LoadJson{{__name}}(SimpleJSON.JSONNode _json, Action<Luban.EditorBeanBase> setChangeAction = null)
     {
     {{~if __this.is_abstract_type~}}
         string type = _json["$type"];
@@ -132,7 +143,12 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             {{~if child.namespace == __this.namespace && __this.namespace != '' ~}}
             case "{{child.full_name}}":   
             {{~end~}}
-            case "{{impl_data_type child __this}}":obj = new {{child.full_name}}(); break;
+            case "{{impl_data_type child __this}}":
+            {
+                obj = new {{child.full_name}}(setChangeAction); 
+                obj._typeIndex = Types.IndexOf("{{impl_data_type child __this}}");
+                break;
+            }
         {{~end~}}
             default: throw new SerializationException();
         }
@@ -146,11 +162,9 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
     public static void SaveJson{{__name}}({{__name}} _obj, SimpleJSON.JSONNode _json)
     {
     {{~if __this.is_abstract_type~}}
-        _json["$type"] = _obj.Instance.GetTypeStr();
-        _obj.Instance.SaveJson((SimpleJSON.JSONObject)_json);
-    {{~else~}}
-        _obj.SaveJson((SimpleJSON.JSONObject)_json);
+        _json["$type"] = _obj.GetTypeStr();
     {{~end~}}
+        _obj.SaveJson((SimpleJSON.JSONObject)_json);
     }
 
     {{~ for field in __fields ~}}

@@ -43,6 +43,14 @@ using UnityEngine;
         end
     end
 
+    func load_data_func_name
+        ret 'LoadJson' + __value_type.def_bean.name
+    end
+
+    func save_data_func_name
+        ret 'SaveJson' + __value_type.def_bean.name
+    end
+
     __value_type_name = declaring_type_name __value_type
 }}
 
@@ -62,6 +70,7 @@ using UnityEngine;
 
         public bool IsLoaded => _datas.Count > 0;
         private string _name => "{{__name}}";
+        private GUIStyle _areaStyle = new GUIStyle(GUI.skin.button);
 
 
         public {{__name}}(string dataFilePath)
@@ -82,17 +91,14 @@ using UnityEngine;
                 {
                     foreach (var node in json.AsArray)
                     {
-                        var data = {{ctor_data}};
-                        var dataNode = (JSONObject)node;
-                        data.LoadJson(dataNode);
+                        var data = {{__value_type_name}}.{{load_data_func_name}}(node.Value);
                         _datas.Add(data);
-                        _originalDataJsons.Add(GetId(data), dataNode.ToString(4));
+                        _originalDataJsons.Add(GetId(data), node.Value.ToString(4));
                     }
                 }
                 else
                 {
-                    var data = {{ctor_data}};
-                    data.LoadJson((JSONObject)json);
+                    var data = {{__value_type_name}}.{{load_data_func_name}}(json);
                     _datas.Add(data);
                     _originalDataJsons.Add(GetId(data), json.ToString(4));
                 }
@@ -152,7 +158,7 @@ using UnityEngine;
             foreach (var data in _datas)
             {
                 var json = new JSONObject();
-                data.SaveJson(json);
+                {{__value_type_name}}.{{save_data_func_name}}(data, json);
                 jsonArray.Add(json);
             }
             return jsonArray.ToString(4);
@@ -161,7 +167,7 @@ using UnityEngine;
         private string GetDataJson({{__value_type_name}} data)
         {
             var json = new JSONObject();
-            data?.SaveJson(json);
+            {{__value_type_name}}.{{save_data_func_name}}(data, json);
             return json.ToString(4);
         }
 
@@ -219,9 +225,9 @@ using UnityEngine;
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("复制Json", GUILayout.Width(100)))
             {
-                if (SelectData != null)
+                if (__SelectData != null)
                 {
-                    var text = GetDataJson(SelectData);
+                    var text = GetDataJson(__SelectData);
                     GUIUtility.systemCopyBuffer = text;
                     EditorUtility.DisplayDialog("提示", $"已复制到剪切板:\n{text}", "确定");
                 }
@@ -232,11 +238,11 @@ using UnityEngine;
             }
             if (GUILayout.Button("预览差异", GUILayout.Width(100)))
             {
-                if (SelectData != null)
+                if (__SelectData != null)
                 {
-                    var id = GetId(SelectData);
+                    var id = GetId(__SelectData);
                     var originalJson = "";
-                    var newJson = GetDataJson(SelectData);
+                    var newJson = GetDataJson(__SelectData);
                     _originalDataJsons.TryGetValue(id, out originalJson);
                     FileDiffTool.ShowWindow(originalJson, newJson, $"{_name}:{id}");
                 }
@@ -249,7 +255,10 @@ using UnityEngine;
             }
             GUILayout.EndHorizontal();
             _dataScrollPos = GUILayout.BeginScrollView(_dataScrollPos);
-            SelectData?.Render();
+            if (__SelectData != default)
+            {
+                {{~ render_bean __value_type.def_bean '__SelectData' ~}}
+            }
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
@@ -280,7 +289,7 @@ using UnityEngine;
 
         public void Sort()
         {
-            var temp = GetId(SelectData);
+            var temp = GetId(__SelectData);
             _datas = _datas.OrderBy(data => Convert.ToInt64(GetId(data))).ToList();
             if (!string.IsNullOrEmpty(temp))
             {
@@ -292,7 +301,7 @@ using UnityEngine;
         {
         }
 
-        private {{__value_type_name}} SelectData
+        private {{__value_type_name}} __SelectData
         {
             get
             {

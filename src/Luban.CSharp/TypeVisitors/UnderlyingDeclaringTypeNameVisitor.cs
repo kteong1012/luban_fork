@@ -3,6 +3,7 @@ using Luban.TypeVisitors;
 using Luban.Utils;
 
 namespace Luban.CSharp.TypeVisitors;
+
 public class UnderlyingDeclaringTypeNameVisitor : ITypeFuncVisitor<string>
 {
     public static UnderlyingDeclaringTypeNameVisitor Ins { get; } = new();
@@ -34,7 +35,7 @@ public class UnderlyingDeclaringTypeNameVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TFloat type)
     {
-        return "float";
+        return "double";
     }
 
     public string Accept(TDouble type)

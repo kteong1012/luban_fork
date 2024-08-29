@@ -18,7 +18,12 @@ public class UnityGUIDeclaringTypeNameVisitor : DeclaringTypeNameVisitor
 
     public override string Accept(TDateTime type)
     {
-        return "string";
+        return "long";
+    }
+
+    public override string Accept(TFloat type)
+    {
+        return "double";
     }
 
     public override string Accept(TMap type)
