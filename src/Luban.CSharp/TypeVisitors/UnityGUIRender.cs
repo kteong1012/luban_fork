@@ -138,19 +138,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
 
             return $$"""
             {
-                var {{__list}} = {{type.DefBean.FullName}}.Types.Select(t => new GUIContent(t)).ToArray();
-                UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
-                if ({{fieldName}} == null)
-                {
-                    {{createNewLine}}
-                    {{fieldName}}.TypeIndex = 0;
-                }
-                UnityEditor.EditorGUILayout.BeginHorizontal();
-                UnityEditor.EditorGUILayout.LabelField("类型", GUILayout.Width(100));
-                {{fieldName}}.TypeIndex = UnityEditor.EditorGUILayout.Popup({{fieldName}}.TypeIndex, {{__list}}, GUILayout.Width(200));
-                UnityEditor.EditorGUILayout.EndHorizontal();
-                {{fieldName}}?.Render();
-                UnityEditor.EditorGUILayout.EndVertical();
+                {{type.DefBean.FullName}}.Render{{type.DefBean.Name}}({{fieldName}});
             }
             """;
         }

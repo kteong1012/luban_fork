@@ -52,10 +52,16 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             _setChangeAction(obj);
         }
     }
-    public {{new_decorat}}static List<string> Types = new List<string>()
+    private {{new_decorat}}static string[] Types = new string[]
     {
     {{~for child in __bean.hierarchy_not_abstract_children ~}}
         "{{get_impl_type_name child}}",
+    {{~end~}}
+    };
+    private {{new_decorat}}static string[] TypeAlias = new string[]
+    {
+    {{~for child in __bean.hierarchy_not_abstract_children ~}}
+        "{{get_type_alias_or_name child}}",
     {{~end~}}
     };
 
@@ -70,7 +76,7 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             case "{{impl_data_type child __this}}":
             {
                 var obj = new {{child.full_name}}(setChangeAction);
-                obj._typeIndex = Types.IndexOf(type);
+                obj._typeIndex = Array.IndexOf(Types,type);
                 return obj;
             }
         {{~end~}}
@@ -89,12 +95,19 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             }
             else
             {
-                {{~ if need_init field.ctype ~}}
                 {{format_field_name __code_style field.name}} = {{init_value field.ctype}};
                     {{~ if field.ctype.type_name == 'bean' ~}}
-                {{format_field_name __code_style field.name}}.SetChangeAction((__x) => {{format_field_name __code_style field.name}} = __x as {{declaring_type_name field.ctype}});
+                        {{~ field_def_bean = field.ctype.def_bean ~}}
+                void _Func(Luban.EditorBeanBase __x)
+                {
+                    {{format_field_name __code_style field.name}} = __x as {{declaring_type_name field.ctype}};
+                }
+                        {{~if field_def_bean.is_abstract_type ~}}
+                {{format_field_name __code_style field.name}} = {{field_def_bean.full_name}}.Create("{{get_impl_type_name field_def_bean.hierarchy_not_abstract_children[0]}}", _Func);
+                        {{~else~}}
+                {{format_field_name __code_style field.name}}.SetChangeAction(_Func);
+                        {{~end~}}
                     {{~ end ~}}
-                {{~ end ~}}
             }
         }
         
@@ -124,7 +137,21 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
     }
     {{~end~}}
 
-    private GUIStyle _areaStyle = new GUIStyle(GUI.skin.button);
+    private static GUIStyle _areaStyle = new GUIStyle(GUI.skin.button);
+
+    public static void Render{{__name}}({{__name}} obj)
+    {
+        UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
+    {{~if __this.is_abstract_type~}}
+        var array = ConfigEditorSettings.showComment ? TypeAlias : Types;
+        UnityEditor.EditorGUILayout.BeginHorizontal();
+        UnityEditor.EditorGUILayout.LabelField("类型", GUILayout.Width(100));
+        obj.TypeIndex = UnityEditor.EditorGUILayout.Popup(obj.TypeIndex, array, GUILayout.Width(200));
+        UnityEditor.EditorGUILayout.EndHorizontal();
+    {{~end~}}
+        obj?.Render();
+        UnityEditor.EditorGUILayout.EndVertical();
+    }
 
     public override void Render()
     {
@@ -144,7 +171,7 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             case "{{impl_data_type child __this}}":
             {
                 obj = new {{child.full_name}}(setChangeAction); 
-                obj._typeIndex = Types.IndexOf("{{impl_data_type child __this}}");
+                obj._typeIndex = Array.IndexOf(Types, "{{impl_data_type child __this}}");
                 break;
             }
         {{~end~}}

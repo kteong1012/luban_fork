@@ -137,4 +137,9 @@ public class CsharpUnityGUIJsonTemplateExtension : ScriptObject
 
         return DataUtil.GetImplTypeName(defBean, parentDefBean);
     }
+
+    public static string GetTypeAliasOrName(DefBean defBean)
+    {
+        return string.IsNullOrWhiteSpace(defBean.Alias) ? defBean.Name : defBean.Alias;
+    }
 }

@@ -261,7 +261,7 @@ using UnityEngine;
             _dataScrollPos = GUILayout.BeginScrollView(_dataScrollPos);
             if (__SelectData != default)
             {
-                {{~ render_bean __value_type.def_bean '__SelectData' ~}}
+                {{__value_type_name}}.Render{{__value_type.def_bean.name}}(__SelectData);
             }
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
