@@ -4,7 +4,7 @@ using Luban.TypeVisitors;
 
 namespace Luban.CSharp.TypeVisitors;
 
-public class UnityGUIInitFieldVisitor : ITypeFuncVisitor<string, int, string>
+public class UnityGUIInitFieldVisitor : ITypeFuncVisitor<string, string, int, string>
 {
     public static UnityGUIInitFieldVisitor Ins { get; } = new();
 
@@ -15,97 +15,90 @@ public class UnityGUIInitFieldVisitor : ITypeFuncVisitor<string, int, string>
         """;
     }
 
-    public string Accept(TBool type, string fieldName, int depth)
+    public string Accept(TBool type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TByte type, string fieldName, int depth)
+    public string Accept(TByte type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TShort type, string fieldName, int depth)
+    public string Accept(TShort type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TInt type, string fieldName, int depth)
+    public string Accept(TInt type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TLong type, string fieldName, int depth)
+    public string Accept(TLong type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TFloat type, string fieldName, int depth)
+    public string Accept(TFloat type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TDouble type, string fieldName, int depth)
+    public string Accept(TDouble type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TEnum type, string fieldName, int depth)
+    public string Accept(TEnum type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TString type, string fieldName, int depth)
+    public string Accept(TString type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TDateTime type, string fieldName, int depth)
+    public string Accept(TDateTime type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TBean type, string fieldName, int depth)
+    public string Accept(TBean type, string fieldName, string fieldName2, int depth)
     {
+        var funcName = $"_Func{depth}";
         if (type.DefBean.IsAbstractType)
         {
             var firstImplType = type.DefBean.HierarchyNotAbstractChildren.First();
             return $$"""
-            void _Func(Luban.EditorBeanBase __x)
-            {
-                {{fieldName}} = __x as {{type.DefBean.FullName}};
-            }
-            {{fieldName}} = {{type.DefBean.FullName}}.Create("{{CsharpUnityGUIJsonTemplateExtension.GetImplTypeName(firstImplType)}}", _Func);
+            {{fieldName}} = {{type.DefBean.FullName}}.Create("{{CsharpUnityGUIJsonTemplateExtension.GetImplTypeName(firstImplType)}}");
             """;
         }
         else
         {
             return $$"""
-            void _Func(Luban.EditorBeanBase __x)
-            {
-                {{fieldName}} = __x as {{type.DefBean.FullName}};
-            }
-            {{fieldName}} = new {{type.DefBean.FullName}}(_Func);
+            {{fieldName}} = new {{type.DefBean.FullName}}();
             """;
         }
     }
 
-    public string Accept(TArray type, string fieldName, int depth)
+    public string Accept(TArray type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TList type, string fieldName, int depth)
+    public string Accept(TList type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TSet type, string fieldName, int depth)
+    public string Accept(TSet type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }
 
-    public string Accept(TMap type, string fieldName, int depth)
+    public string Accept(TMap type, string fieldName, string fieldName2, int depth)
     {
         return CommonAccept(type, fieldName);
     }

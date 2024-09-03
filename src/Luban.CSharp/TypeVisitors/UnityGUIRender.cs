@@ -131,14 +131,13 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 {
                     createNewLine = $$"""
                     {{fieldName}} = new {{type.DefBean.HierarchyNotAbstractChildren[0].FullName}}();
-                    {{fieldName}}.SetChangeAction(({{__x}}) => { {{fieldName}} = {{__x}} as {{type.DefBean.FullName}}; });
                     """;
                 }
             }
 
             return $$"""
             {
-                {{type.DefBean.FullName}}.Render{{type.DefBean.Name}}({{fieldName}});
+                {{type.DefBean.FullName}}.Render{{type.DefBean.Name}}(ref {{fieldName}});
             }
             """;
         }
@@ -208,7 +207,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             {
                 var {{__list}} = new System.Collections.Generic.List<{{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}>({{fieldName}});
                 {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__e}};
-                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, depth + 1)}};
+                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, GetArrayIndexExpression(fieldName, __e), depth + 1)}};
                 {{__list}}.Add({{__e}});
                 {{fieldName}} = {{__list}}.ToArray();
             }
@@ -262,7 +261,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
                 {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__e}};
-                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, depth + 1)}};
+                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, GetListIndexExpression(fieldName, __e), depth + 1)}};
                 {{fieldName}}.Add({{__e}});
             }
             if (GUILayout.Button("import", GUILayout.Width(100)))
@@ -309,7 +308,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
                 {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__e}};
-                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, depth + 1)}};
+                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, GetListIndexExpression(fieldName, __e), depth + 1)}};
                 {{fieldName}}.Add({{__e}});
             }
             UnityEditor.EditorGUILayout.EndVertical();
@@ -366,5 +365,15 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             UnityEditor.EditorGUILayout.EndVertical();
         }
         """;
+    }
+
+    private static string GetArrayIndexExpression(string arrayName, string elementName)
+    {
+        return $"{arrayName}[System.Array.IndexOf({arrayName}, {elementName})]";
+    }
+
+    private static string GetListIndexExpression(string listName, string elementName)
+    {
+        return $"{listName}[{listName}.IndexOf({elementName})]";
     }
 }
