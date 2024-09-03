@@ -95,19 +95,7 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
             }
             else
             {
-                {{format_field_name __code_style field.name}} = {{init_value field.ctype}};
-                    {{~ if field.ctype.type_name == 'bean' ~}}
-                        {{~ field_def_bean = field.ctype.def_bean ~}}
-                void _Func(Luban.EditorBeanBase __x)
-                {
-                    {{format_field_name __code_style field.name}} = __x as {{declaring_type_name field.ctype}};
-                }
-                        {{~if field_def_bean.is_abstract_type ~}}
-                {{format_field_name __code_style field.name}} = {{field_def_bean.full_name}}.Create("{{get_impl_type_name field_def_bean.hierarchy_not_abstract_children[0]}}", _Func);
-                        {{~else~}}
-                {{format_field_name __code_style field.name}}.SetChangeAction(_Func);
-                        {{~end~}}
-                    {{~ end ~}}
+                {{init_field field.ctype (format_field_name __code_style field.name)}}
             }
         }
         

@@ -67,16 +67,7 @@ public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TBean type)
     {
-        if (type.DefBean.IsAbstractType)
-        {
-            return $$"""
-            new {{type.DefBean.HierarchyNotAbstractChildren[0].FullName}}()
-            """;
-        }
-        else
-        {
-            return $"new {type.Apply(RawDefineTypeNameVisitor.Ins)}()";
-        }
+        return $"new {type.Apply(RawDefineTypeNameVisitor.Ins)}()";
     }
 
     public string Accept(TArray type)

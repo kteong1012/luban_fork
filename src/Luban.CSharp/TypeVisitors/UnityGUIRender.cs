@@ -92,7 +92,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                         }
                         """;
             }
-            else if(tag == "texture")
+            else if (tag == "texture")
             {
                 ret += $$"""
                         if ({{fieldName}} != null)
@@ -207,7 +207,9 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
                 var {{__list}} = new System.Collections.Generic.List<{{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}>({{fieldName}});
-                {{__list}}.Add({{type.ElementType.Apply(UnityGUIInitValueVisitor.Ins)}});
+                {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__e}};
+                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, depth + 1)}};
+                {{__list}}.Add({{__e}});
                 {{fieldName}} = {{__list}}.ToArray();
             }
             if (GUILayout.Button("import", GUILayout.Width(100)))
@@ -259,7 +261,9 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             UnityEditor.EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
-                {{fieldName}}.Add({{type.ElementType.Apply(UnityGUIInitValueVisitor.Ins)}});
+                {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__e}};
+                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, depth + 1)}};
+                {{fieldName}}.Add({{__e}});
             }
             if (GUILayout.Button("import", GUILayout.Width(100)))
             {
@@ -304,7 +308,9 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
             }
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
-                {{fieldName}}.Add({{type.ElementType.Apply(UnityGUIInitValueVisitor.Ins)}});
+                {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__e}};
+                {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, depth + 1)}};
+                {{fieldName}}.Add({{__e}});
             }
             UnityEditor.EditorGUILayout.EndVertical();
         }

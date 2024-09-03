@@ -42,6 +42,12 @@ public class CsharpUnityGUIJsonTemplateExtension : ScriptObject
     {
         return type.Apply(UnityGUIInitValueVisitor.Ins);
     }
+
+    public static string InitField(TType type, string fieldName)
+    {
+        return type.Apply(UnityGUIInitFieldVisitor.Ins, fieldName, 0);
+    }
+
     public static string RenderBean(DefBean defBean, string name)
     {
         var ttype = TBean.Create(false, defBean, new Dictionary<string, string>());
