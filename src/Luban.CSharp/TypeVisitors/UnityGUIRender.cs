@@ -12,65 +12,75 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
 {
     public static UnityGUIRender Ins { get; } = new UnityGUIRender();
 
-    private string FieldValueName(TType type, string fieldName)
-    {
-        return fieldName;
-    }
-
     public string Accept(TBool type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = UnityEditor.EditorGUILayout.Toggle({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = UnityEditor.EditorGUILayout.Toggle({{fieldName}}, GUILayout.Width(150));
         """;
     }
 
     public string Accept(TByte type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = (byte)UnityEditor.EditorGUILayout.IntField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = (byte)UnityEditor.EditorGUILayout.IntField({{fieldName}}, GUILayout.Width(150));
         """;
     }
 
     public string Accept(TShort type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = (short)UnityEditor.EditorGUILayout.IntField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = (short)UnityEditor.EditorGUILayout.IntField({{fieldName}}, GUILayout.Width(150));
         """;
     }
 
     public string Accept(TInt type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = UnityEditor.EditorGUILayout.IntField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = UnityEditor.EditorGUILayout.IntField({{fieldName}}, GUILayout.Width(150));
         """;
     }
 
     public string Accept(TLong type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = UnityEditor.EditorGUILayout.LongField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = UnityEditor.EditorGUILayout.LongField({{fieldName}}, GUILayout.Width(150));
         """;
     }
 
     public string Accept(TFloat type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = UnityEditor.EditorGUILayout.DoubleField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = UnityEditor.EditorGUILayout.DoubleField({{fieldName}}, GUILayout.Width(150));
         """;
     }
 
     public string Accept(TDouble type, string fieldName, int depth)
     {
         return $$"""
-        {{fieldName}} = UnityEditor.EditorGUILayout.DoubleField({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {{fieldName}} = UnityEditor.EditorGUILayout.DoubleField({{fieldName}}, GUILayout.Width(150));
         """;
     }
 
     public string Accept(TEnum type, string fieldName, int depth)
     {
+        var __items = $"__items{depth}";
+        var __names = $"__names{depth}";
+        var __index = $"__index{depth}";
         return $$"""
-
-        {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}})UnityEditor.EditorGUILayout.EnumPopup({{FieldValueName(type, fieldName)}}, GUILayout.Width(150));
+        {
+            if (ConfigEditorSettings.showComment)
+            {
+                var {{__items}} = {{type.DefEnum.FullName}}_Metadata.GetItems();
+                var {{__names}} = {{__items}}.Select(x => x.Alias).ToArray();
+                var {{__index}} = {{__items}}.IndexOf({{type.DefEnum.FullName}}_Metadata.GetByName({{fieldName}}.ToString()));
+                {{__index}} = UnityEditor.EditorGUILayout.Popup({{__index}}, {{__names}}, GUILayout.Width(150));
+                {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__items}}[{{__index}}].Value;
+            }
+            else
+            {
+                {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}})UnityEditor.EditorGUILayout.EnumPopup({{fieldName}}, GUILayout.Width(150));
+            }
+        }
         """;
     }
 
