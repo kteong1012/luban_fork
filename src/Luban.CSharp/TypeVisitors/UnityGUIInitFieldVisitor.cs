@@ -67,7 +67,6 @@ public class UnityGUIInitFieldVisitor : ITypeFuncVisitor<string, string, int, st
 
     public string Accept(TBean type, string fieldName, string fieldName2, int depth)
     {
-        var funcName = $"_Func{depth}";
         if (type.DefBean.IsAbstractType)
         {
             var firstImplType = type.DefBean.HierarchyNotAbstractChildren.First();

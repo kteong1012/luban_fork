@@ -25,6 +25,20 @@
         {{~end~}}
     }
 
+    {{~if __enum.is_flags~}}
+    [System.Flags]
+    {{~end~}}
+    public enum {{__name}}_Alias
+    {
+        {{~ for item in items ~}}
+            {{~if item.alias != '' ~}}
+        {{item.alias}} = {{item.value}},
+            {{~else~}}
+        {{format_enum_item_name __code_style item.name}} = {{item.value}},
+            {{~end~}}
+        {{~end~}}
+    }
+
     public static class {{__name}}_Metadata
     {
         {{~ for item in items ~}}

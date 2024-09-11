@@ -45,7 +45,7 @@ public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TEnum type)
     {
-        return $"{(type.DefEnum.Items.Count > 0 ? $"{type.Apply(RawDefineTypeNameVisitor.Ins)}." + type.DefEnum.Items[0].Name : "default")}";
+        return $"{(type.DefEnum.Items.Count > 0 ? $"{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}." + type.DefEnum.Items[0].Name : "default")}";
     }
 
     public string Accept(TString type)
@@ -67,26 +67,26 @@ public class UnityGUIInitValueVisitor : ITypeFuncVisitor<string>
 
     public string Accept(TBean type)
     {
-        return $"new {type.Apply(RawDefineTypeNameVisitor.Ins)}()";
+        return $"new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}()";
     }
 
     public string Accept(TArray type)
     {
-        return $"System.Array.Empty<{type.ElementType.Apply(RawDefineTypeNameVisitor.Ins)}>()";
+        return $"System.Array.Empty<{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}>()";
     }
 
     public string Accept(TList type)
     {
-        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(RawDefineTypeNameVisitor.Ins)}>()";
+        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}>()";
     }
 
     public string Accept(TSet type)
     {
-        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(RawDefineTypeNameVisitor.Ins)}>()";
+        return $"new {ConstStrings.ListTypeName}<{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}>()";
     }
 
     public string Accept(TMap type)
     {
-        return $"new {ConstStrings.ListTypeName}<object[]>()";
+        return $"new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}()";
     }
 }

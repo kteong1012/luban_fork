@@ -196,7 +196,7 @@ using UnityEngine;
                 {
                     GUI.color = Color.white;
                 }
-                EditorGUILayout.LabelField($"[{i}]", GUILayout.Width(20));
+                EditorGUILayout.LabelField($"[{i}]", GUILayout.Width(50));
                 if (GUILayout.Button(GetId(_datas[i])))
                 {
                     _selectIndex = i;
@@ -241,6 +241,21 @@ using UnityEngine;
                     EditorUtility.DisplayDialog("提示", "请选择数据", "确定");
                 }
             }
+            if (GUILayout.Button("新增拷贝", GUILayout.Width(100)))
+            {
+                if (__SelectData != null)
+                {
+                    var text = GetDataJson(__SelectData);
+                    var json = JSON.Parse(text);
+                    var data = {{__value_type_name}}.{{load_data_func_name}}(json);
+                    _selectIndex = _datas.Count;
+                    _datas.Add(data);
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("提示", "请选择数据", "确定");
+                }
+            }
             if (GUILayout.Button("预览差异", GUILayout.Width(100)))
             {
                 if (__SelectData != null)
@@ -261,7 +276,9 @@ using UnityEngine;
             _dataScrollPos = GUILayout.BeginScrollView(_dataScrollPos);
             if (__SelectData != default)
             {
-                {{__value_type_name}}.Render{{__value_type.def_bean.name}}(__SelectData);
+                var renderData = __SelectData;
+                {{~ render_bean __value_type.def_bean 'renderData' ~}}
+                //{{__value_type_name}}.Render{{__value_type.def_bean.name}}(__SelectData);
             }
             GUILayout.EndScrollView();
             GUILayout.EndVertical();

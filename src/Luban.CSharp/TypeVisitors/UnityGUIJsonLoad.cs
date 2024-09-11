@@ -94,21 +94,21 @@ class UnityGUIJsonLoad : ITypeFuncVisitor<string, string, int, string>
         var __v = $"__v{depth}";
         var __i = $"__i{depth}";
         var __n = $"__n{depth}";
-        return $"if(!{json}.IsArray) {{ throw new SerializationException(); }} int {__n} = {json}.Count; {x} = new {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}[{__n}]; int {__i}=0; foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ElementType.Apply(this, __e, __v, depth++)}  {x}[{__i}++] = {__v}; }}  ";
+        return $"if(!{json}.IsArray) {{ throw new SerializationException(); }} int {__n} = {json}.Count; {x} = new {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}[{__n}]; int {__i}=0; foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ElementType.Apply(this, __e, __v, depth + 1)}  {x}[{__i}++] = {__v}; }}  ";
     }
 
     public string Accept(TList type, string json, string x, int depth)
     {
         var __e = $"__e{depth}";
         var __v = $"__v{depth}";
-        return $"if(!{json}.IsArray) {{ throw new SerializationException(); }} {x} = new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}(); foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ElementType.Apply(this, __e, __v, depth++)}  {x}.Add({__v}); }}  ";
+        return $"if(!{json}.IsArray) {{ throw new SerializationException(); }} {x} = new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}(); foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ElementType.Apply(this, __e, __v, depth + 1)}  {x}.Add({__v}); }}  ";
     }
 
     public string Accept(TSet type, string json, string x, int depth)
     {
         var __e = $"__e{depth}";
         var __v = $"__v{depth}";
-        return $"if(!{json}.IsArray) {{ throw new SerializationException(); }} {x} = new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}(); foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ElementType.Apply(this, __e, __v, depth++)}  {x}.Add({__v}); }}  ";
+        return $"if(!{json}.IsArray) {{ throw new SerializationException(); }} {x} = new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}(); foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ElementType.Apply(this, __e, __v, depth + 1)}  {x}.Add({__v}); }}  ";
     }
 
     public string Accept(TMap type, string json, string x, int depth)
@@ -116,7 +116,7 @@ class UnityGUIJsonLoad : ITypeFuncVisitor<string, string, int, string>
         var __e = $"__e{depth}";
         var __k = $"__k{depth}";
         var __v = $"__v{depth}";
-        var ret = @$"if(!{json}.IsArray) {{ throw new SerializationException(); }} {x} = new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}(); foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__k};  {type.KeyType.Apply(this, $"{__e}[0]", __k, depth++)} {type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ValueType.Apply(this, $"{__e}[1]", __v, depth++)}  {x}.Add(new object[] {{ {__k}, {__v} }}); }}  ";
+        var ret = @$"if(!{json}.IsArray) {{ throw new SerializationException(); }} {x} = new {type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}(); foreach(SimpleJSON.JSONNode {__e} in {json}.Children) {{ {type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__k};  {type.KeyType.Apply(this, $"{__e}[0]", __k, depth + 1)} {type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)} {__v};  {type.ValueType.Apply(this, $"{__e}[1]", __v, depth + 1)}  {x}.Add(new object[] {{ {__k}, {__v} }}); }}  ";
         return ret;
     }
 

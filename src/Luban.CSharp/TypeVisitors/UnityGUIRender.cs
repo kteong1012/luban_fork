@@ -6,6 +6,7 @@ using Luban.Types;
 using Luban.TypeVisitors;
 using Luban.Utils;
 using System.Reflection;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Luban.CSharp.TypeVisitors;
 class UnityGUIRender : ITypeFuncVisitor<string, int, string>
@@ -63,25 +64,46 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
 
     public string Accept(TEnum type, string fieldName, int depth)
     {
-        var __items = $"__items{depth}";
-        var __names = $"__names{depth}";
-        var __index = $"__index{depth}";
-        return $$"""
+        var __value = $"__index{depth}";
+        var __alias = $"__alias{depth}";
+        if (type.DefEnum.IsFlags)
         {
-            if (ConfigEditorSettings.showComment)
+            return $$"""
             {
-                var {{__items}} = {{type.DefEnum.FullName}}_Metadata.GetItems();
-                var {{__names}} = {{__items}}.Select(x => x.Alias).ToArray();
-                var {{__index}} = {{__items}}.IndexOf({{type.DefEnum.FullName}}_Metadata.GetByName({{fieldName}}.ToString()));
-                {{__index}} = UnityEditor.EditorGUILayout.Popup({{__index}}, {{__names}}, GUILayout.Width(150));
-                {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__items}}[{{__index}}].Value;
+                if (ConfigEditorSettings.showComment)
+                {
+                    var {{__value}} = (int){{fieldName}};
+                    var {{__alias}} = ({{type.DefEnum.FullName}}_Alias){{fieldName}};
+                    {{__alias}} = ({{type.DefEnum.FullName}}_Alias)UnityEditor.EditorGUILayout.EnumFlagsField({{__alias}}, GUILayout.Width(150));
+                    {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}})((int){{__alias}});
+                }
+                else
+                {
+                    {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}})UnityEditor.EditorGUILayout.EnumFlagsField({{fieldName}}, GUILayout.Width(150));
+                }
             }
-            else
-            {
-                {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}})UnityEditor.EditorGUILayout.EnumPopup({{fieldName}}, GUILayout.Width(150));
-            }
+            """;
         }
-        """;
+        else
+        {
+            var __item = $"__item{depth}";
+            return $$"""
+            {
+                if (ConfigEditorSettings.showComment)
+                {
+                    var {{__value}} = (int){{fieldName}};
+                    var {{__alias}} = ({{type.DefEnum.FullName}}_Alias){{fieldName}};
+                    {{__alias}} = ({{type.DefEnum.FullName}}_Alias)UnityEditor.EditorGUILayout.EnumPopup({{__alias}}, GUILayout.Width(150));
+                    var {{__item}} = {{type.DefEnum.FullName}}_Metadata.GetByNameOrAlias({{__alias}}.ToString());
+                    {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__item}}.Value;
+                }
+                else
+                {
+                    {{fieldName}} = ({{type.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}})UnityEditor.EditorGUILayout.EnumPopup({{fieldName}}, GUILayout.Width(150));
+                }
+            }
+            """;
+        }
     }
 
     public string Accept(TString type, string fieldName, int depth)
@@ -140,13 +162,17 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 if (fieldName != "this" && fieldName != "__SelectData")
                 {
                     createNewLine = $$"""
-                    {{fieldName}} = new {{type.DefBean.HierarchyNotAbstractChildren[0].FullName}}();
+                    if ({{fieldName}} == null)
+                    {   
+                        {{type.Apply(UnityGUIInitFieldVisitor.Ins, fieldName, fieldName, depth + 1)}}
+                    }
                     """;
                 }
             }
 
             return $$"""
             {
+                {{createNewLine}}
                 {{type.DefBean.FullName}}.Render{{type.DefBean.Name}}(ref {{fieldName}});
             }
             """;
@@ -195,6 +221,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
         {
             UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
             int {{__n}} = {{fieldName}}.Length;
+            UnityEditor.EditorGUILayout.LabelField("长度: " + {{__n}}.ToString());
             for (int {{__i}} = 0; {{__i}} < {{__n}}; {{__i}}++)
             {
                 UnityEditor.EditorGUILayout.BeginHorizontal();
@@ -221,7 +248,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 {{__list}}.Add({{__e}});
                 {{fieldName}} = {{__list}}.ToArray();
             }
-            if (GUILayout.Button("import", GUILayout.Width(100)))
+            if (ConfigEditorSettings.showImportButton && GUILayout.Button("import", GUILayout.Width(100)))
             {
                 ConfigEditorImportWindow.Open(({{__importJsonText}}) => 
                 {
@@ -252,6 +279,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
         {
             UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
             int {{__n}} = {{fieldName}}.Count;
+            UnityEditor.EditorGUILayout.LabelField("长度: " + {{__n}}.ToString());
             for (int {{__i}} = 0; {{__i}} < {{__n}}; {{__i}}++)
             {
                 UnityEditor.EditorGUILayout.BeginHorizontal();
@@ -274,7 +302,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, GetListIndexExpression(fieldName, __e), depth + 1)}};
                 {{fieldName}}.Add({{__e}});
             }
-            if (GUILayout.Button("import", GUILayout.Width(100)))
+            if (ConfigEditorSettings.showImportButton && GUILayout.Button("import", GUILayout.Width(100)))
             {
                 ConfigEditorImportWindow.Open(({{__importJsonText}}) => 
                 {
@@ -295,11 +323,15 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
         var __n = $"__n{depth}";
         var __i = $"__i{depth}";
         var __e = $"__e{depth}";
+        var __importJsonText = $"__importJsonText{depth}";
+        var __importJson = $"__importJson{depth}";
+        var __importElement = $"__importElement{depth}";
 
         return $$"""
         {
             UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
             int {{__n}} = {{fieldName}}.Count;
+            UnityEditor.EditorGUILayout.LabelField("长度: " + {{__n}}.ToString());
             for (int {{__i}} = 0; {{__i}} < {{__n}}; {{__i}}++)
             {
                 UnityEditor.EditorGUILayout.BeginHorizontal();
@@ -315,12 +347,24 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 {{fieldName}}[{{__i}}] = {{__e}};
                 UnityEditor.EditorGUILayout.EndHorizontal();
             }
+            UnityEditor.EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("+", GUILayout.Width(20)))
             {
                 {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__e}};
                 {{type.ElementType.Apply(UnityGUIInitFieldVisitor.Ins, __e, GetListIndexExpression(fieldName, __e), depth + 1)}};
                 {{fieldName}}.Add({{__e}});
             }
+            if (ConfigEditorSettings.showImportButton && GUILayout.Button("import", GUILayout.Width(100)))
+            {
+                ConfigEditorImportWindow.Open(({{__importJsonText}}) => 
+                {
+                    var {{__importJson}} = SimpleJSON.JSON.Parse({{__importJsonText}});
+                    {{type.ElementType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}} {{__importElement}};
+                    {{type.ElementType.Apply(UnityGUIJsonLoad.Ins, __importJson, __importElement, depth + 1)}}
+                    {{fieldName}}.Add({{__importElement}});
+                });
+            }
+            UnityEditor.EditorGUILayout.EndHorizontal();
             UnityEditor.EditorGUILayout.EndVertical();
         }
         """;
@@ -339,6 +383,7 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
         {
             UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
             int {{__n}} = {{fieldName}}.Count;
+            UnityEditor.EditorGUILayout.LabelField("长度: " + {{__n}}.ToString());
             for (int {{__i}} = 0; {{__i}} < {{__n}}; {{__i}}++)
             {
                 UnityEditor.EditorGUILayout.BeginHorizontal();
