@@ -137,7 +137,16 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
         }
         else
         {
-            return $"{fieldName} = UnityEditor.EditorGUILayout.TextField({fieldName}, GUILayout.Width(150));";
+            var ret = $"{fieldName} = UnityEditor.EditorGUILayout.TextField({fieldName}, GUILayout.Width(150));";
+
+            ret += $$"""
+
+                if (GUILayout.Button("…", GUILayout.Width(20)))
+                {
+                    TextInputWindow.GetTextAsync({{fieldName}},__x =>{{fieldName}} = __x);
+                }
+                """;
+            return ret;
         }
     }
 
@@ -179,31 +188,38 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
         }
         else
         {
-            var sb = $$"""
+            if (type.DefBean.HierarchyExportFields.Count > 0)
             {
-                UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
-            """;
-            foreach (var f in type.DefBean.HierarchyExportFields)
-            {
-                sb += $$"""
-                UnityEditor.EditorGUILayout.BeginHorizontal();
-                if (ConfigEditorSettings.showComment)
+                var sb = $$"""
                 {
-                    UnityEditor.EditorGUILayout.LabelField(new UnityEngine.GUIContent("{{f.GetCommentOrName()}}", "{{f.Name}}"), GUILayout.Width(100));
-                }
-                else
-                {
-                    UnityEditor.EditorGUILayout.LabelField(new UnityEngine.GUIContent("{{f.Name}}", "{{f.Comment}}"), GUILayout.Width(100));
-                }
-                {{f.CType.Apply(this, $"{fieldName}.{TypeTemplateExtension.FormatFieldName(CodeFormatManager.Ins.CsharpDefaultCodeStyle, f.Name)}", depth + 1)}}
-                UnityEditor.EditorGUILayout.EndHorizontal();
+                    UnityEditor.EditorGUILayout.BeginVertical(_areaStyle);
                 """;
+                foreach (var f in type.DefBean.HierarchyExportFields)
+                {
+                    sb += $$"""
+                    UnityEditor.EditorGUILayout.BeginHorizontal();
+                    if (ConfigEditorSettings.showComment)
+                    {
+                        UnityEditor.EditorGUILayout.LabelField(new UnityEngine.GUIContent("{{f.GetCommentOrName()}}", "{{f.Name}}"), GUILayout.Width(100));
+                    }
+                    else
+                    {
+                        UnityEditor.EditorGUILayout.LabelField(new UnityEngine.GUIContent("{{f.Name}}", "{{f.Comment}}"), GUILayout.Width(100));
+                    }
+                    {{f.CType.Apply(this, $"{fieldName}.{TypeTemplateExtension.FormatFieldName(CodeFormatManager.Ins.CsharpDefaultCodeStyle, f.Name)}", depth + 1)}}
+                    UnityEditor.EditorGUILayout.EndHorizontal();
+                    """;
+                }
+                sb += $$"""
+                    UnityEditor.EditorGUILayout.EndVertical();
+                }
+                """;
+                return sb;
             }
-            sb += $$"""
-                UnityEditor.EditorGUILayout.EndVertical();
+            else
+            {
+                return "";
             }
-            """;
-            return sb;
         }
     }
 

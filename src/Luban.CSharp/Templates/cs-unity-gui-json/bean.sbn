@@ -37,26 +37,14 @@ public {{class_modifier __bean}} class {{__name}} : {{if __parent_def_type}} {{_
 
     {{~if __this.is_abstract_type~}}
     private int _typeIndex = -1;
-    public {{new_decorat}}int TypeIndex
-    {
-        get => _typeIndex;
-        //set
-        //{
-        //    if(_typeIndex == value)
-        //    {
-        //        return;
-        //    }
-        //    _typeIndex = value;
-        //    var obj = Create(Types[value]);
-        //}
-    }
-    private {{new_decorat}}static string[] Types = new string[]
+    private int TypeIndex => _typeIndex;
+    private static string[] Types = new string[]
     {
     {{~for child in __bean.hierarchy_not_abstract_children ~}}
         "{{get_impl_type_name child}}",
     {{~end~}}
     };
-    private {{new_decorat}}static string[] TypeAlias = new string[]
+    private static string[] TypeAlias = new string[]
     {
     {{~for child in __bean.hierarchy_not_abstract_children ~}}
         "{{get_type_alias_or_name child}}",
