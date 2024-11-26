@@ -420,8 +420,8 @@ class UnityGUIRender : ITypeFuncVisitor<string, int, string>
                 }
                 else
                 {
-                    {{__key}} = {{__e}}[0] != null ? ({{type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[0] : default;
-                    {{__value}} = {{__e}}[1] != null ? ({{type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[1] : default;
+                    {{__key}} = {{__e}}[0] != null ? ({{type.KeyType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[0] : {{__key}};
+                    {{__value}} = {{__e}}[1] != null ? ({{type.ValueType.Apply(UnityGUIDeclaringTypeNameVisitor.Ins)}}){{__e}}[1] : {{__value}};
                 }
                 {{type.KeyType.Apply(this, __key, depth + 1)}};
                 {{type.ValueType.Apply(this, __value, depth + 1)}};
