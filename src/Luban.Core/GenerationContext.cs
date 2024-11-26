@@ -87,6 +87,10 @@ public class GenerationContext
         Assembly = builder.Assembly;
         IncludeTags = builder.IncludeTags;
         ExcludeTags = builder.ExcludeTags;
+        if (IncludeTags != null && IncludeTags.Count != 0 && ExcludeTags != null && ExcludeTags.Count > 0)
+        {
+            throw new Exception("option '--includeTag <tag>' and '--excludeTag <tag>' can not be set at the same time");
+        }
         TimeZone = TimeZoneUtil.GetTimeZone(builder.TimeZone);
         _exportEmptyGroupsTypes = builder.Assembly.Target.Groups.Any(g => GlobalConf.Groups.First(gd => gd.Names.Contains(g))?.IsDefault == true);
 
@@ -178,7 +182,9 @@ public class GenerationContext
     public void AddDataTable(DefTable table, List<Record> mainRecords, List<Record> patchRecords)
     {
         s_logger.Debug("AddDataTable name:{} record count:{}", table.FullName, mainRecords.Count);
-        _recordsByTables[table.FullName] = new TableDataInfo(table, mainRecords, patchRecords);
+        _recordsByTables[table.FullName] = new TableDataInfo(table,
+            mainRecords.Where(r => r.IsNotFiltered(IncludeTags, ExcludeTags)).ToList(),
+            patchRecords != null ? patchRecords.Where(r => r.IsNotFiltered(IncludeTags, ExcludeTags)).ToList() : null);
     }
 
     public List<Record> GetTableAllDataList(DefTable table)
@@ -188,20 +194,7 @@ public class GenerationContext
 
     public List<Record> GetTableExportDataList(DefTable table)
     {
-        var tableDataInfo = _recordsByTables[table.FullName];
-        if (ExcludeTags.Count == 0)
-        {
-            return tableDataInfo.FinalRecords;
-        }
-        else
-        {
-            var finalRecords = tableDataInfo.FinalRecords.Where(r => r.IsNotFiltered(ExcludeTags)).ToList();
-            if (table.IsSingletonTable && finalRecords.Count != 1)
-            {
-                throw new Exception($"配置表 {table.FullName} 是单值表 mode=one,但数据个数:{finalRecords.Count} != 1");
-            }
-            return finalRecords;
-        }
+        return _recordsByTables[table.FullName].FinalRecords;
     }
 
     public static List<Record> ToSortByKeyDataList(DefTable table, List<Record> originRecords)

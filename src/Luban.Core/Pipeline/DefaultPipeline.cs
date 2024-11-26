@@ -33,6 +33,7 @@ public class DefaultPipeline : IPipeline
     public void Run(PipelineArguments args)
     {
         _args = args;
+        _config = args.Config;
         LoadSchema();
         PrepareGenerationContext();
         ProcessTargets();
@@ -40,11 +41,8 @@ public class DefaultPipeline : IPipeline
 
     protected void LoadSchema()
     {
-        IConfigLoader rootLoader = new GlobalConfigLoader();
-        GenerationContext.GlobalConf = _config = rootLoader.Load(_args.ConfFile);
-
         string schemaCollectorName = _args.SchemaCollector;
-        s_logger.Info("load schema. collector: {}  path:{}", schemaCollectorName, _args.ConfFile);
+        s_logger.Info("load schema. collector: {}", schemaCollectorName);
         var schemaCollector = SchemaManager.Ins.CreateSchemaCollector(schemaCollectorName);
         schemaCollector.Load(_config);
         _rawAssembly = schemaCollector.CreateRawAssembly();
@@ -54,7 +52,7 @@ public class DefaultPipeline : IPipeline
     {
         s_logger.Debug("prepare generation context");
         _genCtx = new GenerationContext();
-        _defAssembly = new DefAssembly(_rawAssembly, _args.Target, _args.OutputTables, _config.Groups);
+        _defAssembly = new DefAssembly(_rawAssembly, _args.Target, _args.OutputTables, _config.Groups, _args.Variants);
 
         var generationCtxBuilder = new GenerationContextBuilder
         {

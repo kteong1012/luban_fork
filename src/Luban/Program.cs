@@ -1,17 +1,10 @@
 ﻿using CommandLine;
-using Luban.CSharp;
-using Luban.DataExporter.Builtin;
-using Luban.DataLoader.Builtin;
-using Luban.DataLoader.Builtin.DataVisitors;
-using Luban.DataValidator.Builtin.Collection;
-using Luban.L10N;
+using Luban.DataLoader;
 using Luban.Pipeline;
-using Luban.Protobuf.TypeVisitors;
-using Luban.Schema.Builtin;
+using Luban.Schema;
 using Luban.Tmpl;
 using Luban.Utils;
 using NLog;
-using System.Reflection;
 using System.Text;
 
 namespace Luban;
@@ -49,6 +42,9 @@ internal static class Program
         [Option('e', "excludeTag", Required = false, HelpText = "exclude tag")]
         public IEnumerable<string> ExcludeTags { get; set; }
 
+        [Option("variant", Required = false, HelpText = "field variants")]
+        public IEnumerable<string> Variants { get; set; }
+
         [Option('o', "outputTable", Required = false, HelpText = "output table")]
         public IEnumerable<string> OutputTables { get; set; }
 
@@ -67,6 +63,9 @@ internal static class Program
         [Option('l', "logConfig", Required = false, Default = "nlog.xml", HelpText = "nlog config file")]
         public string LogConfig { get; set; }
 
+        [Option('w', "watchDir", Required = false, HelpText = "watch dir and regererate when dir changes")]
+        public IEnumerable<string> WatchDirs { get; set; }
+
         [Option('v', "verbose", Required = false, HelpText = "verbose")]
         public bool Verbose { get; set; }
     }
@@ -78,15 +77,54 @@ internal static class Program
         CommandOptions opts = ParseArgs(args);
         SetupApp(opts);
 
+        if (opts.WatchDirs != null && opts.WatchDirs.Any())
+        {
+            RunLoop(opts, opts.WatchDirs);
+        }
+        else
+        {
+            RunOnce(opts);
+        }
+    }
+
+    private static void RunOnce(CommandOptions opts)
+    {
+        RunGeneration(opts, true);
+    }
+
+    private static volatile bool s_anyChange = false;
+
+    private static void RunLoop(CommandOptions opts, IEnumerable<string> watchDirs)
+    {
+        var watcher = new DirectoryWatcher(opts.WatchDirs.ToArray(), () => s_anyChange = true);
+        s_anyChange = true;
+        while (true)
+        {
+            if (s_anyChange)
+            {
+                s_anyChange = false;
+                RunGeneration(opts, false);
+            }
+            Thread.Sleep(1000);
+        }
+    }
+
+    private static void RunGeneration(CommandOptions opts, bool exitOnError)
+    {
         try
         {
+            IConfigLoader rootLoader = new GlobalConfigLoader();
+            var config = rootLoader.Load(opts.ConfigFile);
+            GenerationContext.GlobalConf = config;
+
+
             var launcher = new SimpleLauncher();
-            launcher.Start(ParseXargs(opts.Xargs));
+            launcher.Start(ParseXargs(config.Xargs, opts.Xargs));
             AddCustomTemplateDirs(opts.CustomTemplateDirs);
 
             var pipeline = PipelineManager.Ins.CreatePipeline(opts.Pipeline);
-            pipeline.Run(CreatePipelineArgs(opts));
-            if (opts.ValidationFailAsError && GenerationContext.Current.AnyValidatorFail)
+            pipeline.Run(CreatePipelineArgs(opts, config));
+            if (exitOnError && opts.ValidationFailAsError && GenerationContext.Current.AnyValidatorFail)
             {
                 s_logger.Error("encounter some validation failure. exit code: 1");
                 Environment.Exit(1);
@@ -97,7 +135,10 @@ internal static class Program
         {
             PrettyPrintException(e);
             s_logger.Error("run failed!!!");
-            Environment.Exit(1);
+            if (exitOnError)
+            {
+                Environment.Exit(1);
+            }
         }
     }
 
@@ -177,40 +218,78 @@ internal static class Program
         return ((Parsed<CommandOptions>)result).Value;
     }
 
-    private static Dictionary<string, string> ParseXargs(IEnumerable<string> xargs)
+
+    private static Dictionary<string, string> ParseXargs0(IEnumerable<string> xargs)
     {
         var result = new Dictionary<string, string>();
+        if (xargs == null)
+        {
+            return result;
+        }
         foreach (var arg in xargs)
         {
             string[] pair = arg.Split('=', 2);
             if (pair.Length != 2)
             {
-                Console.Error.WriteLine($"invalid xargs:{arg}");
-                Environment.Exit(1);
+                throw new Exception($"invalid xargs:{arg}");
             }
 
             if (!result.TryAdd(pair[0], pair[1]))
             {
-                Console.Error.WriteLine($"duplicate xargs:{arg}");
-                Environment.Exit(1);
+                throw new Exception($"duplicate xargs:{arg}");
             }
         }
         return result;
     }
 
-    private static PipelineArguments CreatePipelineArgs(CommandOptions opts)
+    private static Dictionary<string, string> ParseXargs(IEnumerable<string> defaultXargs, IEnumerable<string> cmdXargs)
+    {
+        var defaultXargsMap = ParseXargs0(defaultXargs);
+        var cmdXargsMap = ParseXargs0(cmdXargs);
+        foreach (var kv in cmdXargsMap)
+        {
+            defaultXargsMap[kv.Key] = kv.Value;
+        }
+        return defaultXargsMap;
+    }
+
+    private static Dictionary<string, string> ParseVariants(IEnumerable<string> variants)
+    {
+        var result = new Dictionary<string, string>();
+        if (variants == null)
+        {
+            return result;
+        }
+        foreach (var variant in variants)
+        {
+            string[] pair = variant.Split('=', 2);
+            if (pair.Length != 2)
+            {
+                throw new Exception($"invalid variant:{variant}");
+            }
+
+            if (!result.TryAdd(pair[0], pair[1]))
+            {
+                throw new Exception($"duplicate variant:{variant}");
+            }
+        }
+        return result;
+    }
+
+    private static PipelineArguments CreatePipelineArgs(CommandOptions opts, LubanConfig config)
     {
         return new PipelineArguments()
         {
             Target = opts.Target,
             ForceLoadTableDatas = opts.ForceLoadTableDatas,
             SchemaCollector = opts.SchemaCollector,
-            ConfFile = opts.ConfigFile,
+            Config = config,
             OutputTables = opts.OutputTables?.ToList() ?? new List<string>(),
             CodeTargets = opts.CodeTargets?.ToList() ?? new List<string>(),
             DataTargets = opts.DataTargets?.ToList() ?? new List<string>(),
             IncludeTags = opts.IncludeTags?.ToList() ?? new List<string>(),
             ExcludeTags = opts.ExcludeTags?.ToList() ?? new List<string>(),
+            Variants = ParseVariants(opts.Variants),
             TimeZone = opts.TimeZone,
         };
     }

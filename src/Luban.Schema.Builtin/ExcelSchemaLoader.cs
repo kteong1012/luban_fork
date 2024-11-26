@@ -63,7 +63,7 @@ public class ExcelSchemaLoader : SchemaLoaderBase
             Assembly = new DefAssembly(new RawAssembly()
             {
                 Targets = new List<RawTarget> { new() { Name = "default", Manager = "Tables" } },
-            }, "default", new List<string>(), null),
+            }, "default", new List<string>(), null, null),
         };
         defTableRecordType.PreCompile();
         defTableRecordType.Compile();
@@ -108,7 +108,7 @@ public class ExcelSchemaLoader : SchemaLoaderBase
         var ass = new DefAssembly(new RawAssembly()
         {
             Targets = new List<RawTarget> { new() { Name = "default", Manager = "Tables" } },
-        }, "default", new List<string>(), null);
+        }, "default", new List<string>(), null, null);
 
         var enumItemType = new DefBean(new RawBean()
         {
@@ -207,7 +207,7 @@ public class ExcelSchemaLoader : SchemaLoaderBase
         var ass = new DefAssembly(new RawAssembly()
         {
             Targets = new List<RawTarget> { new() { Name = "default", Manager = "Tables" } },
-        }, "default", new List<string>(), null);
+        }, "default", new List<string>(), null, null);
 
         var defBeanFieldType = new DefBean(new RawBean()
         {
@@ -220,10 +220,12 @@ public class ExcelSchemaLoader : SchemaLoaderBase
             Fields = new List<RawField>
             {
                 new() { Name = "name", Type = "string" },
+                new() { Name = "alias", Type = "string" },
                 new() { Name = "type", Type = "string" },
                 new() { Name = "group", Type = "string" },
                 new() { Name = "comment", Type = "string" },
                 new() { Name = "tags", Type = "string" },
+                new() { Name = "variants", Type = "string" },
             }
         })
         {
@@ -301,10 +303,12 @@ public class ExcelSchemaLoader : SchemaLoaderBase
                 Fields = fields.Datas.Select(d => (DBean)d).Select(b => SchemaLoaderUtil.CreateField(
                     fileName,
                     (b.GetField("name") as DString).Value.Trim(),
+                    (b.GetField("alias") as DString).Value.Trim(),
                     (b.GetField("type") as DString).Value.Trim(),
                     (b.GetField("group") as DString).Value,
                     (b.GetField("comment") as DString).Value.Trim(),
                     (b.GetField("tags") as DString).Value.Trim(),
+                    (b.GetField("variants") as DString).Value.Trim(),
                     false
                 )).ToList(),
             };

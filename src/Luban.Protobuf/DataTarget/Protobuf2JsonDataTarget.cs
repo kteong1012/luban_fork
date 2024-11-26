@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Luban.DataExporter.Builtin.Json;
 using Luban.DataTarget;
@@ -7,12 +8,12 @@ using Luban.Utils;
 
 namespace Luban.Protobuf.DataTarget;
 
-[DataTarget("protobuf-json")]
-public class ProtobufJsonDataTarget : JsonDataTarget
+[DataTarget("protobuf2-json")]
+public class Protobuf2JsonDataTarget : JsonDataTarget
 {
     protected override string DefaultOutputFileExt => "json";
 
-    protected override JsonDataVisitor ImplJsonDataVisitor => ProtobufJsonDataVisitor.Ins;
+    protected override JsonDataVisitor ImplJsonDataVisitor => Protobuf2JsonDataVisitor.Ins;
 
     public void WriteAsTable(List<Record> datas, Utf8JsonWriter x)
     {
@@ -22,7 +23,7 @@ public class ProtobufJsonDataTarget : JsonDataTarget
         x.WriteStartArray();
         foreach (var d in datas)
         {
-            d.Data.Apply(ProtobufJsonDataVisitor.Ins, x);
+            d.Data.Apply(Protobuf2JsonDataVisitor.Ins, x);
         }
         x.WriteEndArray();
         x.WriteEndObject();
@@ -39,11 +40,6 @@ public class ProtobufJsonDataTarget : JsonDataTarget
         });
         WriteAsTable(records, jsonWriter);
         jsonWriter.Flush();
-        return new OutputFile()
-        {
-            File = $"{table.OutputDataFile}.{OutputFileExt}",
-            Content = DataUtil.StreamToBytes(ss),
-            Encoding = FileEncoding,
-        };
+        return CreateOutputFile($"{table.OutputDataFile}.{OutputFileExt}", Encoding.UTF8.GetString(DataUtil.StreamToBytes(ss)));
     }
 }

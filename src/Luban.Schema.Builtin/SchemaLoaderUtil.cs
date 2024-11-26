@@ -108,16 +108,18 @@ public static class SchemaLoaderUtil
         return mode;
     }
 
-    public static RawField CreateField(string schemaFile, string name, string type, string group,
-        string comment, string tags,
+    public static RawField CreateField(string schemaFile, string name, string alias, string type, string group,
+        string comment, string tags, string variants,
         bool ignoreNameValidation)
     {
         var f = new RawField()
         {
             Name = name,
+            Alias = alias,
             Groups = CreateGroups(group),
             Comment = comment,
             Tags = DefUtil.ParseAttrs(tags),
+            Variants = DefUtil.ParseVariant(variants),
             NotNameValidation = ignoreNameValidation,
         };
 

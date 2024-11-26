@@ -7,11 +7,15 @@ namespace Luban.Defs;
 
 public class DefField
 {
+    private static readonly NLog.Logger s_logger = NLog.LogManager.GetCurrentClassLogger();
+
     public DefAssembly Assembly => HostType.Assembly;
 
-    public DefBean HostType { get; set; }
+    public DefBean HostType { get; }
 
-    public string Name { get; protected set; }
+    public string Name { get; }
+
+    public string Alias { get; }
 
     public string Type { get; }
 
@@ -26,6 +30,14 @@ public class DefField
     // public string EscapeComment => DefUtil.EscapeCommentByCurrentLanguage(Comment);
 
     public Dictionary<string, string> Tags { get; }
+
+    public List<string> Variants { get; }
+
+    public string CurrentVariantNameWithoutFieldName { get; private set; }
+
+    public string CurrentVariantNameWithFieldName { get; private set; }
+
+    public string CurrentVariantNameWithFieldNameOrOrigin => CurrentVariantNameWithFieldName ?? Name;
 
     public bool IgnoreNameValidation { get; set; }
 
@@ -48,9 +60,11 @@ public class DefField
     {
         HostType = host;
         Name = f.Name;
+        Alias = f.Alias;
         Type = f.Type;
         Comment = f.Comment;
         Tags = f.Tags;
+        Variants = f.Variants;
         IgnoreNameValidation = f.NotNameValidation;
         this.Groups = f.Groups;
         this.RawField = f;
@@ -63,6 +77,23 @@ public class DefField
 
     public void Compile()
     {
+        if (Variants != null && Variants.Count > 0)
+        {
+            string variantKey = $"{HostType.FullName}.{Name}";
+            if (HostType.Assembly.TryGetVariantName(variantKey, out var variantName))
+            {
+                if (!Variants.Contains(variantName))
+                {
+                    throw new Exception($"type:'{HostType.FullName}' field:'{Name}' variantKey:'{variantKey}' exists, but variantName'{variantName}' not in {string.Join(",", Variants)}");
+                }
+                CurrentVariantNameWithoutFieldName = variantName;
+                CurrentVariantNameWithFieldName = $"{Name}@{variantName}";
+            }
+            else
+            {
+                s_logger.Warn($"type:'{HostType.FullName}' field:'{Name}' not set variant. please set variant by command line option '--variant {variantKey}=<variantName>'");
+            }
+        }
         try
         {
             CType = Assembly.CreateType(HostType.Namespace, Type, false);
@@ -128,8 +159,20 @@ public class DefField
             f.AutoId = nextAutoId++;
         }
 
+        var aliasNames = new Dictionary<string, DefField>();
         foreach (var f in fields)
         {
+            if (!string.IsNullOrEmpty(f.Alias))
+            {
+                if (!aliasNames.TryAdd(f.Alias, f))
+                {
+                    throw new Exception($"type:'{hostType.FullName}' field:'{f.Name}' alias:'{f.Alias}' duplicate with field:{aliasNames[f.Alias].Name}");
+                }
+                if (names.Contains(f.Alias))
+                {
+                    throw new Exception($"type:'{hostType.FullName}' field:'{f.Name}' alias:'{f.Alias}' duplicate with other field name");
+                }
+            }
             f.Compile();
         }
     }
