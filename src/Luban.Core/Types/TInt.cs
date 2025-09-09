@@ -4,12 +4,17 @@ namespace Luban.Types;
 
 public class TInt : TType
 {
+    private const string TAG_CONVERTER = "converter";
+
     public static TInt Create(bool isNullable, Dictionary<string, string> tags)
     {
         return new TInt(isNullable, tags);
     }
 
     public override string TypeName => "int";
+
+    public bool HasConverter => Tags.ContainsKey(TAG_CONVERTER);
+    public string Converter => Tags.TryGetValue(TAG_CONVERTER, out var v) ? v : null;
 
     private TInt(bool isNullable, Dictionary<string, string> tags) : base(isNullable, tags)
     {

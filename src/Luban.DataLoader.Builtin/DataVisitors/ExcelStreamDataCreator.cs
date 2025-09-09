@@ -81,6 +81,20 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
         //        return DInt.ValueOf(c);
         //    }
         //}
+
+        if (!string.IsNullOrEmpty(type.Converter))
+        {
+            var @enum = GenerationContext.Current.Assembly.GetEnum(type.Converter);
+            if (@enum == null)
+            {
+                throw new Exception($"converter:没有找到枚举:{type.Converter}");
+            }
+            // 只映射枚举的名字和别名，如果填的是具体数字，那么就不转换
+            if (@enum.TryValueByNameOrAlias(ds, out var c))
+            {
+                return DInt.ValueOf(c);
+            }
+        }
         if (!LoadDataUtil.TryParseExcelIntFromNumberOrConstAlias(ds, out var v))
         {
             throw new InvalidExcelDataException($"{d} 不是 int 类型值");

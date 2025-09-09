@@ -178,6 +178,11 @@ public class DefAssembly
 
     private readonly Dictionary<(DefTypeBase, bool), TType> _cacheDefTTypes = new();
 
+    public DefEnum GetEnum(string name)
+    {
+        return Types.TryGetValue(name, out var t) ? t as DefEnum : null;
+    }
+
     public void AddCfgTable(DefTable table)
     {
         if (!TablesByFullName.TryAdd(table.FullName, table))

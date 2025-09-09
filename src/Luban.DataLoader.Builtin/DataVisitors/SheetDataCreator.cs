@@ -98,6 +98,19 @@ class SheetDataCreator : ITypeFuncVisitor<RowColumnSheet, TitleRow, DType>
             ThrowIfNonEmpty(row);
             return DInt.Default;
         }
+        if (!string.IsNullOrEmpty(type.Converter))
+        {
+            var @enum = GenerationContext.Current.Assembly.GetEnum(type.Converter);
+            if (@enum == null)
+            {
+                throw new Exception($"converter:没有找到枚举:{type.Converter}");
+            }
+            // 只映射枚举的名字和别名，如果填的是具体数字，那么就不转换
+            if (@enum.TryValueByNameOrAlias(x.ToString(), out var c))
+            {
+                return DInt.ValueOf(c);
+            }
+        }
         if (!LoadDataUtil.TryParseExcelIntFromNumberOrConstAlias(x.ToString(), out var v))
         {
             throw new InvalidExcelDataException($"{x} 不是 int 类型值");
