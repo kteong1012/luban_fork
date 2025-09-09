@@ -70,4 +70,38 @@ public class CsharpTemplateExtension : ScriptObject
     //     }
     //     return string.Empty;
     // }
+    public static string GetRefGetValueMethodName(DefField field)
+    {
+        var tag = field.CType.GetTag("ref");
+        if (tag == null && field.CType.IsCollection)
+        {
+            tag = field.CType.ElementType.GetTag("ref");
+        }
+        if (tag == null)
+        {
+            return null;
+        }
+        var keyName = "";
+        var tableName = tag.Replace("?", "");
+        if (tableName.Contains("@"))
+        {
+            var parts = tableName.Split('@');
+            keyName = parts.FirstOrDefault();
+            tableName = parts.LastOrDefault();
+        }
+        var refTable = GenerationContext.Current.Assembly.GetCfgTable(tableName);
+        if (refTable == null)
+        {
+            return null;
+        }
+        if (refTable.Mode == TableMode.MAP)
+        {
+            return "GetOrDefault";
+        }
+        else if (refTable.Mode == TableMode.LIST)
+        {
+            return $"GetBy{keyName}";
+        }
+        return null;
+    }
 }
