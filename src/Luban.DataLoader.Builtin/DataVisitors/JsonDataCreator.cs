@@ -124,13 +124,24 @@ public class JsonDataCreator : ITypeFuncVisitor<JsonElement, DefAssembly, DType>
                     }
                     catch (Exception e)
                     {
-                        var dce = new DataCreateException(e, "");
-                        dce.Push(bean, f);
-                        throw dce;
+                        if (EnvManager.Current.GetBoolOptionOrDefault("", "jsonStrict", true, true))
+                        {
+                            var dce = new DataCreateException(e, "");
+                            dce.Push(bean, f);
+                            throw dce;
+                        }
+                        else
+                        {
+                            fields.Add(null);
+                        }
                     }
                 }
             }
             else if (f.CType.IsNullable)
+            {
+                fields.Add(null);
+            }
+            else if (!EnvManager.Current.GetBoolOptionOrDefault("", "jsonStrict", true, true))
             {
                 fields.Add(null);
             }
