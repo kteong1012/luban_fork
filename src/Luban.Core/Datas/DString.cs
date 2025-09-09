@@ -30,6 +30,8 @@ public class DString : DType<string>
 
     public override string TypeName => "string";
 
+    public string L10nText { get; set; }
+
     private DString(string x) : base(x)
     {
     }

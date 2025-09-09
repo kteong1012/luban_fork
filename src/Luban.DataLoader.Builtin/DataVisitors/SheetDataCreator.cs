@@ -253,21 +253,44 @@ class SheetDataCreator : ITypeFuncVisitor<RowColumnSheet, TitleRow, DType>
 
     public DType Accept(TString type, RowColumnSheet sheet, TitleRow row)
     {
-        object x = row.Current;
-        if (CheckDefault(x))
+        if (type.HasTag("text"))
         {
-            ThrowIfNonEmpty(row);
-        }
-        var s = ParseString(x, type.IsNullable);
-        if (s == null)
-        {
-            if (type.IsNullable)
+            var key = row.GetSubTitleNamedRow("key");
+            var text = row.GetSubTitleNamedRow("text");
+            // 兼容：如果text不存在就尝试找cn
+            if (text == null)
             {
-                return null;
+                text = row.GetSubTitleNamedRow("cn");
             }
-            throw new InvalidExcelDataException("字段不是nullable类型，不能为null");
+            if (text == null)
+            {
+                throw new Exception($"text类型字段缺失列: 'text' 或者 'cn'");
+            }
+            var keyValue = key.Current != null ? key.Current.ToString() : string.Empty;
+            var textValue = text.Current != null ? text.Current.ToString() : string.Empty;
+            var d = DString.ValueOf(type, keyValue);
+            d.L10nText = textValue;
+            return d;
+
         }
-        return DString.ValueOf(type, s);
+        else
+        {
+            object x = row.Current;
+            if (CheckDefault(x))
+            {
+                ThrowIfNonEmpty(row);
+            }
+            var s = ParseString(x, type.IsNullable);
+            if (s == null)
+            {
+                if (type.IsNullable)
+                {
+                    return null;
+                }
+                throw new InvalidExcelDataException("字段不是nullable类型，不能为null");
+            }
+            return DString.ValueOf(type, s);
+        }
     }
 
     public DType Accept(TDateTime type, RowColumnSheet sheet, TitleRow row)
