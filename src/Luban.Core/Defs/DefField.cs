@@ -94,6 +94,22 @@ public class DefField
                 s_logger.Warn($"type:'{HostType.FullName}' field:'{Name}' not set variant. please set variant by command line option '--variant {variantKey}=<variantName>'");
             }
         }
+        if (EnvManager.Current.TryGetOption("field_name_check", "pattern", true, out var regexPattern))
+        {
+            if (HostType.Namespace != "__intern__")
+            {
+                var regex = new System.Text.RegularExpressions.Regex(regexPattern);
+                if (!IgnoreNameValidation && !regex.IsMatch(Name))
+                {
+                    var log = $"type:'{HostType.FullName}' field:'{Name}' name not match pattern '{regexPattern}'";
+                    if (EnvManager.Current.TryGetOption("field_name_check", "tips", true, out var tips))
+                    {
+                        log += "\n" + tips;
+                    }
+                    throw new Exception(log);
+                }
+            }
+        }
         try
         {
             CType = Assembly.CreateType(HostType.Namespace, Type, false);
