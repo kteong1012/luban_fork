@@ -24,12 +24,14 @@ public class BinaryRecordOffsetLengthDataTarget : DataTargetBase
                 DType keyData = d.Data.Fields[indexInfo.IndexFieldIdIndex];
                 keyData.Apply(BinaryDataVisitor.Ins, x);
             }
+
             int offset = buf.Size;
+            lastOffset = offset;
+
             x.WriteSize(offset);
             d.Data.Apply(BinaryDataVisitor.Ins, buf);
             int length = buf.Size - lastOffset;
             x.WriteSize(length);
-            lastOffset = buf.Size;
         }
     }
 
