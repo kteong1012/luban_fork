@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.RawDefs;
 using Luban.TypeVisitors;
 using Luban.Utils;
@@ -7,7 +27,7 @@ namespace Luban.Defs;
 public class DefBean : DefTypeBase
 {
     public int Id { get; }
-    
+
     public int AutoId { get; private set; } // for protobuf
 
     public string Parent { get; }
@@ -29,7 +49,7 @@ public class DefBean : DefTypeBase
         }
         foreach (var child in Children)
         {
-            foreach(var c2 in  child.GetHierarchyChildren())
+            foreach (var c2 in child.GetHierarchyChildren())
             {
                 yield return c2;
             }
@@ -47,17 +67,30 @@ public class DefBean : DefTypeBase
     public bool IsMultiRow { get; set; }
 
     public string Sep { get; }
-    
+
     public bool IsValueType { get; }
 
 
     private List<DefField> _hierarchyExportFields;
-    
+
     public List<DefField> HierarchyExportFields => _hierarchyExportFields ??= HierarchyFields.Where(f => f.NeedExport()).ToList();
 
     private List<DefField> _exportFields;
-    
+
     public List<DefField> ExportFields => _exportFields ??= Fields.Where(f => f.NeedExport()).ToList();
+
+    public bool IsAssignableFrom(DefBean b)
+    {
+        while (b != null)
+        {
+            if (b == this)
+            {
+                return true;
+            }
+            b = b.ParentDefType;
+        }
+        return false;
+    }
 
     public bool IsDefineEquals(DefBean b)
     {
@@ -168,7 +201,7 @@ public class DefBean : DefTypeBase
             }
         }
     }
-    
+
     public void CollectHierarchyNotAbstractChildren(List<DefBean> children)
     {
         if (IsAbstractType)

@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Numerics;
 using Luban.Datas;
 using Luban.Defs;
@@ -100,6 +120,25 @@ class LuaDataCreator : ITypeFuncVisitor<object, DefAssembly, DType>
         }
     }
 
+    private object GetBeanField(LuaTable table, DefField f)
+    {
+        object ele;
+        if (!string.IsNullOrEmpty(f.CurrentVariantNameWithoutFieldName))
+        {
+            ele = table[f.CurrentVariantNameWithFieldName];
+            if (ele != null)
+            {
+                return ele;
+            }
+        }
+        ele = table[f.Name];
+        if (ele == null && !string.IsNullOrEmpty(f.Alias))
+        {
+            ele = table[f.Alias];
+        }
+        return ele;
+    }
+
     public DType Accept(TBean type, object x, DefAssembly ass)
     {
         var table = (LuaTable)x;
@@ -109,7 +148,7 @@ class LuaDataCreator : ITypeFuncVisitor<object, DefAssembly, DType>
         if (bean.IsAbstractType)
         {
             string subType;
-            if(table.ContainsKey(FieldNames.LuaTypeNameKey))
+            if (table.ContainsKey(FieldNames.LuaTypeNameKey))
             {
                 subType = (string)(table[FieldNames.LuaTypeNameKey]);
             }
@@ -131,7 +170,7 @@ class LuaDataCreator : ITypeFuncVisitor<object, DefAssembly, DType>
         var fields = new List<DType>();
         foreach (DefField f in implBean.HierarchyFields)
         {
-            var ele = table[f.Name];
+            var ele = GetBeanField(table, f);
 
             if (ele != null)
             {

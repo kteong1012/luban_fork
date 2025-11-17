@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Text;
 
 namespace Luban.Utils;
@@ -116,12 +136,12 @@ public static class TypeUtil
 
     public static string MakePyFullName(string module, string name)
     {
-        return module.Replace('.', '_') + name;
+        return MakeFullName(module, name).Replace('.', '_');
     }
 
     public static string MakeGDScriptFullName(string module, string name)
     {
-        return UpperCaseFirstChar(module.Replace('.', '_') + name);
+        return ToPascalCase(module.Replace('.', '_') + "_" + name);
     }
 
     public static string MakeRustFullName(string module, string name)
@@ -135,6 +155,11 @@ public static class TypeUtil
     }
 
     public static string MakeFlatBuffersFullName(string module, string name)
+    {
+        return MakeGoNamespace(module) + name;
+    }
+
+    public static string MakeJavascriptFullName(string module, string name)
     {
         return MakeGoNamespace(module) + name;
     }

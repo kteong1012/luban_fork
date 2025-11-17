@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Xml.Linq;
 using Luban.Datas;
 using Luban.Defs;
@@ -56,6 +76,30 @@ class XmlDataCreator : ITypeFuncVisitor<XElement, DefAssembly, DType>
         return DString.ValueOf(type, x.Value);
     }
 
+    private XElement GetBeanField(XElement x, DefField f)
+    {
+        var eles = x.Elements(f.Name);
+        var ele = string.IsNullOrEmpty(f.CurrentVariantNameWithoutFieldName) ? eles.FirstOrDefault() : eles.FirstOrDefault(e =>
+        {
+            var v = e.Attribute("variant");
+            return v != null && v.Value == f.CurrentVariantNameWithoutFieldName;
+        });
+        if (ele != null)
+        {
+            return ele;
+        }
+        if (!string.IsNullOrEmpty(f.Alias))
+        {
+            eles = x.Elements(f.Alias);
+            return string.IsNullOrEmpty(f.CurrentVariantNameWithoutFieldName) ? eles.FirstOrDefault() : eles.FirstOrDefault(e =>
+            {
+                var v = e.Attribute("variant");
+                return v != null && v.Value == f.CurrentVariantNameWithoutFieldName;
+            });
+        }
+        return null;
+    }
+
     public DType Accept(TBean type, XElement x, DefAssembly ass)
     {
         var bean = type.DefBean;
@@ -82,8 +126,7 @@ class XmlDataCreator : ITypeFuncVisitor<XElement, DefAssembly, DType>
         var fields = new List<DType>();
         foreach (DefField f in implBean.HierarchyFields)
         {
-            var feles = x.Elements(f.Name);
-            XElement fele = feles.FirstOrDefault();
+            XElement fele = GetBeanField(x, f);
             if (fele == null)
             {
                 if (f.CType.IsNullable)

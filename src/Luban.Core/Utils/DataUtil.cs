@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Text;
 using Luban.Datas;
 using Luban.Defs;
@@ -7,6 +27,22 @@ namespace Luban.Utils;
 
 public static class DataUtil
 {
+    public static bool ParseBool(string s)
+    {
+        s = s.ToLower().Trim();
+        switch (s)
+        {
+            case "true":
+            case "1":
+                return true;
+            case "false":
+            case "0":
+                return false;
+            default:
+                throw new Exception($"{s} 不是 bool 类型的值 (true|1 或 false|0)");
+        }
+    }
+
     private static readonly string[] dateTimeFormats = new string[] {
         "yyyy-M-d HH:mm:ss", "yyyy-M-d HH:mm", "yyyy-M-d HH", "yyyy-M-d",
         //"yyyy/MM/dd HH:mm:ss", "yyyy/MM/dd HH:mm", "yyyy/MM/dd HH", "yyyy/MM/dd",
@@ -31,13 +67,41 @@ public static class DataUtil
         return bytes;
     }
 
+    public static string RemoveStringQuote(string s)
+    {
+        if (s.Length == 0)
+        {
+            return s;
+        }
+        if (s[0] == '\'')
+        {
+            if (s.Length == 1 || s[s.Length - 1] != '\'')
+            {
+                throw new Exception($"bad string:`{s}`");
+            }
+            return s.Substring(1, s.Length - 2);
+        }
+        else if (s[0] == '\"')
+        {
+            if (s.Length == 1 || s[s.Length - 1] != '\"')
+            {
+                throw new Exception($"bad string:`{s}`");
+            }
+            return s.Substring(1, s.Length - 2);
+        }
+        return s;
+    }
+
     public static string UnEscapeRawString(string s)
     {
         switch (s)
         {
-            case "null": return null;
-            case "\"\"": return string.Empty;
-            default: return s;
+            case "null":
+                return null;
+            case "\"\"":
+                return string.Empty;
+            default:
+                return s;
         }
     }
 
@@ -60,7 +124,7 @@ public static class DataUtil
         var multiEqaulChars = new StringBuilder();
         var result = new StringBuilder();
         var startIndex = s.EndsWith(']') ? 1 : 0;
-        for(int i = startIndex; i < 100 ;i++)
+        for (int i = startIndex; i < 100; i++)
         {
             if (i > 0)
             {
@@ -69,7 +133,7 @@ public static class DataUtil
             var multiEqualStr = multiEqaulChars.ToString();
             if (i == 0 || s.Contains(multiEqualStr))
             {
-                if (s.Contains("[" + multiEqualStr + "[") ||  s.Contains("]" + multiEqualStr + "]"))
+                if (s.Contains("[" + multiEqualStr + "[") || s.Contains("]" + multiEqualStr + "]"))
                 {
                     continue;
                 }
@@ -164,7 +228,7 @@ public static class DataUtil
         }
         return defType;
     }
-    
+
     private const string TAG_UNCHECKED = "unchecked";
 
     public static bool IsUnchecked(Record rec)

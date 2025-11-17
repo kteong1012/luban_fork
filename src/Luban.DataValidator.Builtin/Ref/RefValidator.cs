@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.Datas;
 using Luban.DataVisitors;
 using Luban.Defs;
@@ -87,11 +107,13 @@ public class RefValidator : DataValidatorBase
                     var recordMap = genCtx.GetTableDataInfo(defTable).FinalRecordMap;
                     if (recordMap.TryGetValue(key, out Record rec))
                     {
+                        /*
                         if (!rec.IsNotFiltered(excludeTags))
                         {
                             s_logger.Error("记录 {} = {} (来自文件:{}) 在引用表:{} 中存在，但导出时被过滤了",
                                 RecordPath, key, Source, defTable.FullName);
                         }
+                        */
                         return;
                     }
                     break;
@@ -101,16 +123,19 @@ public class RefValidator : DataValidatorBase
                     var recordMap = genCtx.GetTableDataInfo(defTable).FinalRecordMapByIndexs[field];
                     if (recordMap.TryGetValue(key, out Record rec))
                     {
+                        /*
                         if (!rec.IsNotFiltered(excludeTags))
                         {
                             s_logger.Error("记录 {} = {} (来自文件:{}) 在引用表:{} 中存在，但导出时被过滤了",
                                 RecordPath, key, Source, defTable.FullName);
                         }
+                        */
                         return;
                     }
                     break;
                 }
-                default: throw new NotSupportedException();
+                default:
+                    throw new NotSupportedException();
             }
         }
 
@@ -154,7 +179,7 @@ public class RefValidator : DataValidatorBase
         string actualTable = table.FullName;
         string fieldTypeName = type.TypeName;
         string valueTypeName = table.ValueTType.DefBean.FullName;
-        if (!table.NeedExport() && field.NeedExport())
+        if (!table.NeedExport() && field.NeedExport() && field.HostType.Assembly.ExportTables.Any(t => t.ValueTType.DefBean.IsAssignableFrom(field.HostType)))
         {
             throw new Exception($"field:'{field}' ref 引用的表:'{actualTable}' 没有导出");
         }
@@ -176,7 +201,7 @@ public class RefValidator : DataValidatorBase
             {
                 throw new Exception($"field:'{field}' 类型:'{type.TypeName}' 与被引用的表:{actualTable} value_type:{valueTypeName} 索引字段:{indexName} key_type:{tmap.KeyType.TypeName} 不一致");
             }
-            
+
         }
         else if (table.IsMapTable)
         {
@@ -197,7 +222,7 @@ public class RefValidator : DataValidatorBase
                 throw new Exception($"field:'{field}' ref:{actualTable} 是list表，必须显式指定索引字段");
             }
             var indexField = table.IndexList.Find(k => k.IndexField.Name == indexName);
-            if (indexField.Type == null)
+            if (indexField?.Type == null)
             {
                 throw new Exception($"field:'{field}' 索引字段:{indexName} 不是被引用的list表:{actualTable} 的索引字段，合法值为'{table.Index}'之一");
             }

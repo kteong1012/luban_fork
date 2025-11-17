@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Text.Json;
 using Luban.Datas;
 using Luban.Defs;
@@ -56,6 +76,26 @@ public class JsonDataCreator : ITypeFuncVisitor<JsonElement, DefAssembly, DType>
         return DString.ValueOf(type, x.GetString());
     }
 
+    private bool TryGetBeanField(JsonElement x, DefField field, out JsonElement ele)
+    {
+        if (!string.IsNullOrEmpty(field.CurrentVariantNameWithFieldName))
+        {
+            if (x.TryGetProperty(field.CurrentVariantNameWithFieldName, out ele))
+            {
+                return true;
+            }
+        }
+        if (x.TryGetProperty(field.Name, out ele))
+        {
+            return true;
+        }
+        if (!string.IsNullOrEmpty(field.Alias) && x.TryGetProperty(field.Alias, out ele))
+        {
+            return true;
+        }
+        return false;
+    }
+
     public DType Accept(TBean type, JsonElement x, DefAssembly ass)
     {
         var bean = type.DefBean;
@@ -78,7 +118,7 @@ public class JsonDataCreator : ITypeFuncVisitor<JsonElement, DefAssembly, DType>
         var fields = new List<DType>();
         foreach (DefField f in implBean.HierarchyFields)
         {
-            if (x.TryGetProperty(f.Name, out var ele))
+            if (TryGetBeanField(x, f, out var ele))
             {
                 if (ele.ValueKind == JsonValueKind.Null || ele.ValueKind == JsonValueKind.Undefined)
                 {
@@ -116,7 +156,7 @@ public class JsonDataCreator : ITypeFuncVisitor<JsonElement, DefAssembly, DType>
             }
             else
             {
-                throw new Exception($"结构:'{implBean.FullName}' 字段:'{f.Name}' 缺失");
+                throw new Exception($"结构:'{implBean.FullName}' 字段:'{f.CurrentVariantNameWithFieldNameOrOrigin}' 缺失");
             }
         }
         return new DBean(type, implBean, fields);

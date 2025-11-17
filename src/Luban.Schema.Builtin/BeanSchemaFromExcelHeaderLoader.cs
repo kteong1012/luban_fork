@@ -1,4 +1,25 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.DataLoader.Builtin.Excel;
+using Luban.Defs;
 using Luban.RawDefs;
 using Luban.Utils;
 
@@ -7,12 +28,12 @@ namespace Luban.Schema.Builtin;
 [BeanSchemaLoader("default")]
 public class BeanSchemaFromExcelHeaderLoader : IBeanSchemaLoader
 {
-    public RawBean Load(string fileName, string beanFullName)
+    public RawBean Load(string fileName, string beanFullName, RawTable table)
     {
-        return LoadTableValueTypeDefineFromFile(fileName, beanFullName);
+        return LoadTableValueTypeDefineFromFile(fileName, beanFullName, table);
     }
-    
-    public static RawBean LoadTableValueTypeDefineFromFile(string fileName, string valueTypeFullName)
+
+    public static RawBean LoadTableValueTypeDefineFromFile(string fileName, string valueTypeFullName, RawTable table)
     {
         var valueTypeNamespace = TypeUtil.GetNamespace(valueTypeFullName);
         string valueTypeName = TypeUtil.GetName(valueTypeFullName);
@@ -24,21 +45,67 @@ public class BeanSchemaFromExcelHeaderLoader : IBeanSchemaLoader
             Parent = "",
             Groups = new(),
             Fields = new(),
+            Tags = new Dictionary<string, string>(),
         };
-        
+
+
         (var actualFile, var sheetName) = FileUtil.SplitFileAndSheetName(FileUtil.Standardize(fileName));
+
+        if (!File.Exists(actualFile))
+        {
+            if (Directory.Exists(fileName))
+            {
+                var files = FileUtil.GetFileOrDirectory(Directory.GetParent(fileName).FullName, fileName);
+                var firstExcelFile = files.FirstOrDefault(f => FileUtil.IsExcelFile(f));
+                if (firstExcelFile == null)
+                {
+                    throw new Exception($"table: '{table.Name}' valueType:'{valueTypeFullName}' directory:'{fileName}', 当table的ReadSchemaFromFile为true时，目录下必须有excel文件");
+                }
+                actualFile = firstExcelFile;
+            }
+            else
+            {
+                throw new Exception($"table '{table.Name}' intput path:'{fileName}' not found");
+            }
+        }
+        else if (!FileUtil.IsExcelFile(actualFile))
+        {
+            throw new Exception($"table: '{table.Name}' valueType:'{valueTypeFullName}' file:'{fileName}'，当table的ReadSchemaFromFile为true时，文件必须是excel文件");
+        }
+
         using var inputStream = new FileStream(actualFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
         var tableDefInfo = SheetLoadUtil.LoadSheetTableDefInfo(actualFile, sheetName, inputStream);
 
         foreach (var (name, f) in tableDefInfo.FieldInfos)
         {
+            if (name.Contains('@'))
+            {
+                var splitName = name.Split('@');
+                if (splitName.Length != 2)
+                {
+                    throw new Exception($"file:{fileName} title:'{name}' is invalid!");
+                }
+                string actualName = splitName[0];
+                string variantName = splitName[1];
+                RawField rawField = cb.Fields.Find(f => f.Name == actualName);
+                if (rawField == null)
+                {
+                    throw new Exception($"file:{fileName} field:{actualName} not found for variant field:'{name}' not found!");
+                }
+                rawField.Variants.Add(variantName);
+                continue;
+            }
+
             var cf = new RawField()
             {
                 Name = name,
                 Groups = new List<string>(),
+                Variants = new List<string>(),
+                Tags = new Dictionary<string, string>(),
             };
 
-            string[] attrs = f.Type.Trim().Split('&').Select(s => s.Trim()).ToArray();
+            string[] attrs = StringUtil.SplitStringWithEscape(f.Type.Trim(), '&').Select(s => s.Trim()).ToArray();
 
             if (attrs.Length == 0 || string.IsNullOrWhiteSpace(attrs[0]))
             {

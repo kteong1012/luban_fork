@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 ﻿using ExcelDataReader;
 using Luban.Utils;
 
@@ -59,7 +79,7 @@ public static class SheetLoadUtil
     {
         bool orientRow;
 
-        if (!TryParseMeta(reader, out orientRow, out var tableName))
+        if (!TryParseMeta(reader, out orientRow))
         {
             return null;
         }
@@ -67,7 +87,7 @@ public static class SheetLoadUtil
         ValidateTitles(cells);
         var title = ParseTitle(cells, reader.MergeCells, orientRow);
         cells.RemoveAll(c => IsNotDataRow(c));
-        return new RawSheet() { Title = title, TableName = tableName, Cells = cells };
+        return new RawSheet() { Title = title, SheetName = reader.Name, Cells = cells };
     }
 
 
@@ -101,7 +121,7 @@ public static class SheetLoadUtil
             {
                 break;
             }
-            var tags = rowTag.Substring(2).Split(s_sep).Where(s => !string.IsNullOrEmpty(s));
+            var tags = StringUtil.SplitStringWithEscape(rowTag.Substring(2), s_sep).Where(s => !string.IsNullOrEmpty(s)).ToList();
             foreach (string tag in tags)
             {
                 if (!s_knownSpecialTags.Contains(tag))
@@ -159,7 +179,7 @@ public static class SheetLoadUtil
             {
                 break;
             }
-            string rowTag = row[0].Value?.ToString()?.ToLower() ?? "";
+            string rowTag = row[0].Value?.ToString()?.ToLower()?.Trim() ?? "";
             if (!rowTag.StartsWith("##"))
             {
                 break;
@@ -168,7 +188,7 @@ public static class SheetLoadUtil
             {
                 throw new Exception($"excel标题头不再使用'&'作为分割符，请改为'{s_sep}'");
             }
-            var tags = rowTag.Substring(2).Split(s_sep).Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+            var tags = StringUtil.SplitStringWithEscape(rowTag.Substring(2), s_sep).Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
             if (tags.Contains("field") || tags.Contains("var") || tags.Contains("+"))
             {
                 rowIndex = i;
@@ -194,7 +214,7 @@ public static class SheetLoadUtil
             {
                 break;
             }
-            string rowTag = row[0].Value?.ToString()?.ToLower() ?? "";
+            string rowTag = row[0].Value?.ToString()?.ToLower()?.Trim() ?? "";
             if (rowTag == "##field" || rowTag == "##var" || rowTag == "##+")
             {
                 rowIndex = i;
@@ -220,12 +240,12 @@ public static class SheetLoadUtil
         {
             throw new Exception($"excel标题头不再使用'&'作为分割符，请改为'{s_sep}'");
         }
-        var attrs = nameAndAttrs.Split(s_sep);
+        var attrs = StringUtil.SplitStringWithEscape(nameAndAttrs, s_sep);
 
         string titleName = attrs[0];
         var tags = new Dictionary<string, string>();
         // *  开头的表示是多行
-        if (titleName.StartsWith("*"))
+        if (titleName.StartsWith('*'))
         {
             titleName = titleName.Substring(1);
             tags.Add("multi_rows", "1");
@@ -235,7 +255,7 @@ public static class SheetLoadUtil
         //    titleName = titleName.Substring(0, titleName.Length - 1);
         //    tags.Add("multi_rows", "1");
         //}
-        if (titleName.StartsWith("!"))
+        if (titleName.StartsWith('!'))
         {
             titleName = titleName.Substring(1);
             tags.Add("non_empty", "1");
@@ -311,7 +331,7 @@ public static class SheetLoadUtil
 
         for (int i = title.FromIndex; i <= title.ToIndex; i++)
         {
-            var nameAndAttrs = titleRow[i].Value?.ToString()?.Trim();
+            string nameAndAttrs = i < titleRow.Count ? titleRow[i].Value?.ToString()?.Trim() : null;
             if (IsIgnoreTitle(nameAndAttrs))
             {
                 continue;
@@ -320,6 +340,8 @@ public static class SheetLoadUtil
 
             Title subTitle;
             // [field,,,, field] 形成多列字段
+
+
             if (titleName.StartsWith('['))
             {
                 int startIndex = i;
@@ -327,6 +349,10 @@ public static class SheetLoadUtil
                 bool findEndPair = false;
                 for (++i; i <= title.ToIndex; i++)
                 {
+                    if (i >= titleRow.Count)
+                    {
+                        break;
+                    }
                     var endNamePair = titleRow[i].Value?.ToString()?.Trim();
                     if (string.IsNullOrEmpty(endNamePair))
                     {
@@ -368,10 +394,9 @@ public static class SheetLoadUtil
         }
     }
 
-    public static bool TryParseMeta(string metaStr, out bool orientRow, out string tableName)
+    public static bool TryParseMeta(string metaStr, out bool orientRow)
     {
         orientRow = true;
-        tableName = "";
 
         // meta 行 必须以 ##为第一个单元格内容,紧接着 key:value 形式 表达meta属性
         if (string.IsNullOrEmpty(metaStr) || !metaStr.StartsWith("##"))
@@ -382,7 +407,7 @@ public static class SheetLoadUtil
         {
             throw new Exception($"excel标题头不再使用'&'作为分割符，请改为'{s_sep}'");
         }
-        foreach (var attr in metaStr.Substring(2).Split(s_sep))
+        foreach (var attr in StringUtil.SplitStringWithEscape(metaStr.Substring(2), s_sep))
         {
             if (string.IsNullOrWhiteSpace(attr))
             {
@@ -394,28 +419,17 @@ public static class SheetLoadUtil
             string value = sepIndex >= 0 ? attr.Substring(sepIndex + 1) : "";
             switch (key)
             {
-                case "field":
                 case "+":
                 case "var":
                 case "comment":
-                case "desc":
                 case "type":
                 {
                     break;
                 }
-                case "row":
-                {
-                    orientRow = true;
-                    break;
-                }
                 case "column":
+                case "vertical":
                 {
                     orientRow = false;
-                    break;
-                }
-                case "table":
-                {
-                    tableName = value;
                     break;
                 }
                 default:
@@ -427,16 +441,15 @@ public static class SheetLoadUtil
         return true;
     }
 
-    public static bool TryParseMeta(IExcelDataReader reader, out bool orientRow, out string tableName)
+    public static bool TryParseMeta(IExcelDataReader reader, out bool orientRow)
     {
         if (!reader.Read() || reader.FieldCount == 0)
         {
             orientRow = true;
-            tableName = "";
             return false;
         }
-        string metaStr = reader.GetString(0)?.Trim();
-        return TryParseMeta(metaStr, out orientRow, out tableName);
+        string metaStr = reader.GetValue(0)?.ToString().Trim();
+        return TryParseMeta(metaStr, out orientRow);
     }
 
     private static bool IsTypeRow(List<Cell> row)
@@ -468,6 +481,13 @@ public static class SheetLoadUtil
         return s == tag;
     }
 
+    private static bool IsEmptyRow(List<Cell> row)
+    {
+        return row.All(c => string.IsNullOrWhiteSpace(c.Value?.ToString()));
+    }
+
+    const int maxEmptyRowCount = 300;
+
     private static List<List<Cell>> ParseRawSheetContent(IExcelDataReader reader, bool orientRow, bool headerOnly)
     {
         // TODO 优化性能
@@ -477,6 +497,7 @@ public static class SheetLoadUtil
         // 3. 跳过null或者empty的单元格
         var originRows = new List<List<Cell>>();
         int rowIndex = 0;
+        int emptyRowCount = 0;
         do
         {
             var row = new List<Cell>();
@@ -484,12 +505,24 @@ public static class SheetLoadUtil
             {
                 row.Add(new Cell(rowIndex, i, reader.GetValue(i)));
             }
+            ++rowIndex;
+            if (IsEmptyRow(row))
+            {
+                ++emptyRowCount;
+                if (emptyRowCount == maxEmptyRowCount)
+                {
+                    s_logger.Warn("excel:{filename} sheet:{sheet} 连续空行超过{}行，删除这些空行可以提升导出性能", s_curExcel.Value, reader.Name, maxEmptyRowCount);
+                }
+            }
+            else
+            {
+                emptyRowCount = 0;
+            }
             originRows.Add(row);
             if (orientRow && headerOnly && !IsHeaderRow(row))
             {
                 break;
             }
-            ++rowIndex;
         } while (reader.Read());
 
         List<List<Cell>> finalRows;
@@ -549,14 +582,14 @@ public static class SheetLoadUtil
     {
         bool orientRow;
 
-        if (!TryParseMeta(reader, out orientRow, out var _))
+        if (!TryParseMeta(reader, out orientRow))
         {
             return null;
         }
         var cells = ParseRawSheetContent(reader, orientRow, true);
         var title = ParseTitle(cells, reader.MergeCells, orientRow);
 
-        int typeRowIndex = cells.FindIndex(row => IsTypeRow(row));
+        int typeRowIndex = cells.FindIndex(IsTypeRow);
 
         if (typeRowIndex < 0)
         {
@@ -574,7 +607,7 @@ public static class SheetLoadUtil
         {
             descRow = cells.Count > 1 ? cells.Skip(1).FirstOrDefault(row => IsRowTagEqual(row, "##")) : null;
         }
-        List<Cell> groupRow = cells.Find(row => IsGroupRow(row));
+        List<Cell> groupRow = cells.Find(IsGroupRow);
         var fields = new Dictionary<string, FieldInfo>();
         foreach (var subTitle in title.SubTitleList)
         {
@@ -592,7 +625,11 @@ public static class SheetLoadUtil
                     int notEmptyCellCount = 0;
                     for (int i = subTitle.FromIndex; i <= subTitle.ToIndex; i++)
                     {
-                        var cellValue = descRow?[i].Value?.ToString();
+                        if (i >= descRow.Count)
+                        {
+                            break;
+                        }
+                        var cellValue = descRow[i].Value?.ToString();
                         if (!string.IsNullOrWhiteSpace(cellValue))
                         {
                             ++notEmptyCellCount;

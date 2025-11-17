@@ -1,84 +1,34 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.Types;
 using Luban.TypeVisitors;
 
 namespace Luban.CSharp.TypeVisitors;
 
-class EditorJsonSave : ITypeFuncVisitor<string, string, string, string>
+class EditorJsonSave : DecoratorFuncVisitor<string, string, string, int, string>
 {
     public static EditorJsonSave Ins { get; } = new();
 
-    public string Accept(TBool type, string jsonName, string jsonFieldName, string value)
+    public override string DoAccept(TType type, string jsonName, string jsonFieldName, string value, int depth)
     {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONBool({value}{(type.IsNullable ? ".Value" : "")});";
-    }
-
-    public string Accept(TByte type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
-    }
-
-    public string Accept(TShort type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
-    }
-
-    public string Accept(TInt type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
-    }
-
-    public string Accept(TLong type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
-    }
-
-    public string Accept(TFloat type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
-    }
-
-    public string Accept(TDouble type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber({value}{(type.IsNullable ? ".Value" : "")});";
-    }
-
-    public string Accept(TEnum type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONNumber((int){value});";
-    }
-
-    public string Accept(TString type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONString({value});";
-    }
-
-    public string Accept(TDateTime type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{jsonName}[\"{jsonFieldName}\"] = new JSONString({value});";
-    }
-
-    public string Accept(TBean type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{{ var __bjson = new JSONObject();  {type.Apply(EditorUnderlyingTypeNameVisitor.Ins)}.SaveJson{type.DefBean.Name}({value}, __bjson); {jsonName}[\"{jsonFieldName}\"] = __bjson; }}";
-    }
-
-    public string Accept(TArray type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{{ var __cjson = new JSONArray(); foreach(var _e in {value}) {{ {type.ElementType.Apply(this, "__cjson", "null", "_e")} }} {jsonName}[\"{jsonFieldName}\"] = __cjson; }}";
-    }
-
-    public string Accept(TList type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{{ var __cjson = new JSONArray(); foreach(var _e in {value}) {{ {type.ElementType.Apply(this, "__cjson", "null", "_e")} }} {jsonName}[\"{jsonFieldName}\"] = __cjson; }}";
-    }
-
-    public string Accept(TSet type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{{ var __cjson = new JSONArray(); foreach(var _e in {value}) {{ {type.ElementType.Apply(this, "__cjson", "null", "_e")} }} {jsonName}[\"{jsonFieldName}\"] = __cjson; }}";
-    }
-
-    public string Accept(TMap type, string jsonName, string jsonFieldName, string value)
-    {
-        return $"{{ var __cjson = new JSONArray(); foreach(var _e in {value}) {{ var __entry = new JSONArray(); __cjson[null] = __entry; {type.KeyType.Apply(this, "__entry", "null", "_e.Key")} {type.ValueType.Apply(this, "__entry", "null", "_e.Value")} }} {jsonName}[\"{jsonFieldName}\"] = __cjson; }}";
+        return $"{type.Apply(EditorJsonSaveUnderlying.Ins, jsonName, jsonFieldName, (!type.IsNullable || type.Apply(EditorIsRawNullableTypeVisitor.Ins) ? value : $"{value}.Value"), depth)}";
     }
 }

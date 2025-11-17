@@ -25,7 +25,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <EnableDynamicLoading>true</EnableDynamicLoading>
@@ -39,10 +39,5 @@
         <ProjectReference Include="..\Luban.Core\Luban.Core.csproj">
         </ProjectReference>
         <ProjectReference Include="..\Luban.DataLoader.Builtin\Luban.DataLoader.Builtin.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="NLog" Version="5.2.2">
-      </PackageReference>
     </ItemGroup>
 </Project>

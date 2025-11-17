@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 ﻿using Luban.DataLoader;
 using Luban.Datas;
 using Luban.Defs;
@@ -14,22 +34,53 @@ class MsgPackDataVisitor
     {
         switch (type)
         {
-            case DInt x: Accept(x, ref writer); break;
-            case DString x: Accept(x, ref writer); break;
-            case DFloat x: Accept(x, ref writer); break;
-            case DBean x: Accept(x, ref writer); break;
-            case DBool x: Accept(x, ref writer); break;
-            case DEnum x: Accept(x, ref writer); break;
-            case DList x: Accept(x, ref writer); break;
-            case DArray x: Accept(x, ref writer); break;
-            case DLong x: Accept(x, ref writer); break;
-            case DDateTime x: Accept(x, ref writer); break;
-            case DMap x: Accept(x, ref writer); break;
-            case DByte x: Accept(x, ref writer); break;
-            case DDouble x: Accept(x, ref writer); break;
-            case DSet x: Accept(x, ref writer); break;
-            case DShort x: Accept(x, ref writer); break;
-            default: throw new NotSupportedException($"DType:{type.GetType().FullName} not support");
+            case DInt x:
+                Accept(x, ref writer);
+                break;
+            case DString x:
+                Accept(x, ref writer);
+                break;
+            case DFloat x:
+                Accept(x, ref writer);
+                break;
+            case DBean x:
+                Accept(x, ref writer);
+                break;
+            case DBool x:
+                Accept(x, ref writer);
+                break;
+            case DEnum x:
+                Accept(x, ref writer);
+                break;
+            case DList x:
+                Accept(x, ref writer);
+                break;
+            case DArray x:
+                Accept(x, ref writer);
+                break;
+            case DLong x:
+                Accept(x, ref writer);
+                break;
+            case DDateTime x:
+                Accept(x, ref writer);
+                break;
+            case DMap x:
+                Accept(x, ref writer);
+                break;
+            case DByte x:
+                Accept(x, ref writer);
+                break;
+            case DDouble x:
+                Accept(x, ref writer);
+                break;
+            case DSet x:
+                Accept(x, ref writer);
+                break;
+            case DShort x:
+                Accept(x, ref writer);
+                break;
+            default:
+                throw new NotSupportedException($"DType:{type.GetType().FullName} not support");
         }
     }
 
@@ -80,7 +131,7 @@ class MsgPackDataVisitor
 
     public void Accept(DDateTime type, ref MessagePackWriter writer)
     {
-        writer.Write(type.UnixTimeOfCurrentContext);
+        writer.Write(type.UnixTimeOfCurrentContext());
     }
 
     public void Accept(DBean type, ref MessagePackWriter writer)
@@ -154,8 +205,8 @@ class MsgPackDataVisitor
 
     public void Accept(DMap type, ref MessagePackWriter writer)
     {
-        writer.WriteMapHeader(type.Datas.Count);
-        foreach (var d in type.Datas)
+        writer.WriteMapHeader(type.DataMap.Count);
+        foreach (var d in type.DataMap)
         {
             Apply(d.Key, ref writer);
             Apply(d.Value, ref writer);

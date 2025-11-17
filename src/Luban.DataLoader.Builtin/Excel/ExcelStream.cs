@@ -1,9 +1,29 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Text;
 using Luban.DataLoader.Builtin.Utils;
 
 namespace Luban.DataLoader.Builtin.Excel;
 
-class ExcelStream
+public class ExcelStream
 {
 
     private readonly List<Cell> _datas;
@@ -15,6 +35,7 @@ class ExcelStream
     public ExcelStream(List<Cell> datas, int fromIndex, int toIndex, string sep, string overrideDefault)
     {
         _overrideDefault = overrideDefault;
+        toIndex = Math.Min(toIndex, datas.Count - 1);
         if (string.IsNullOrWhiteSpace(sep))
         {
             if (string.IsNullOrEmpty(overrideDefault))
@@ -110,7 +131,7 @@ class ExcelStream
             {
                 foreach (var row in rows)
                 {
-                    for (int i = fromIndex; i <= toIndex; i++)
+                    for (int i = fromIndex; i <= toIndex && i < row.Count; i++)
                     {
                         this._datas.Add(row[i]);
                     }
@@ -126,7 +147,7 @@ class ExcelStream
         {
             foreach (var row in rows)
             {
-                for (int i = fromIndex; i <= toIndex; i++)
+                for (int i = fromIndex; i <= toIndex && i < row.Count; i++)
                 {
                     var cell = row[i];
                     object d = cell.Value;
@@ -187,6 +208,17 @@ class ExcelStream
             }
         }
         LastReadIndex = _curIndex - 1;
+        return false;
+    }
+
+    public bool TryPeek(out object data)
+    {
+        int oldCurIndex = _curIndex;
+        if (TryRead(out data))
+        {
+            _curIndex = oldCurIndex;
+            return true;
+        }
         return false;
     }
 

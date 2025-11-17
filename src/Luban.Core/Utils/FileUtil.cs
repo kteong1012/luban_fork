@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
@@ -226,15 +246,30 @@ public static class FileUtil
         Directory.Delete(rootDir, false);
     }
 
-    public static List<string> GetFileOrDirectory(string fileOrDirectory)
+    public static bool IsIgnoreFile(string baseDir, string file)
+    {
+        baseDir = Path.GetFullPath(baseDir.Replace('\\', '/'));
+        file = Path.GetFullPath(file.Replace('\\', '/'));
+        // if baseDir contains '.' or '_', we shouldn't ignore it.
+        if (file.Length > baseDir.Length && file.StartsWith(baseDir) && (file[baseDir.Length] == '\\' || file[baseDir.Length] == '/'))
+        {
+            file = file[(baseDir.Length + 1)..];
+        }
+        return file.Split('\\', '/').Any(fileName => fileName.StartsWith(".") || fileName.StartsWith("_") || fileName.StartsWith("~"));
+    }
+
+    public static List<string> GetFileOrDirectory(string baseDir, string fileOrDirectory)
     {
         var files = new List<string>();
         if (Directory.Exists(fileOrDirectory))
         {
             foreach (var file in Directory.GetFiles(fileOrDirectory, "*", SearchOption.AllDirectories))
             {
-                string fileName = Path.GetFileName(file);
-                if (fileName.StartsWith(".") || fileName.StartsWith("_") || fileName.StartsWith("~"))
+                if (IsIgnoreFile(baseDir, file))
+                {
+                    continue;
+                }
+                if (file.EndsWith(".meta", StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -250,8 +285,13 @@ public static class FileUtil
         return files;
     }
 
-    public static string GetExtensionWithDot(string file)
+    public static string GetExtensionWithoutDot(string file)
     {
-        return Path.GetExtension(file).Substring(1);
+        string ext = Path.GetExtension(file);
+        if (string.IsNullOrEmpty(ext))
+        {
+            return "";
+        }
+        return ext.Substring(1);
     }
 }

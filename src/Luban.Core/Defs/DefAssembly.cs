@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.RawDefs;
 using Luban.Types;
 using Luban.Utils;
@@ -7,21 +27,23 @@ namespace Luban.Defs;
 public class DefAssembly
 {
     private static readonly NLog.Logger s_logger = NLog.LogManager.GetCurrentClassLogger();
-    
+
     public Dictionary<string, DefTypeBase> Types { get; } = new();
 
     public List<DefTypeBase> TypeList { get; } = new();
 
     private readonly Dictionary<string, DefTypeBase> _notCaseSenseTypes = new();
 
+    private readonly Dictionary<string, string> _constAliases = new();
+
     private readonly HashSet<string> _namespaces = new();
 
     private readonly Dictionary<string, DefTypeBase> _notCaseSenseNamespaces = new();
-    
+
     private readonly List<RawTarget> _targets;
 
     public RawTarget Target { get; }
-    
+
     public IReadOnlyList<RawTarget> Targets => _targets;
 
     public RawTarget GetTarget(string targetName)
@@ -33,10 +55,58 @@ public class DefAssembly
 
     public List<DefTable> ExportTables => _exportTables;
 
-    public DefAssembly(RawAssembly assembly, string target, List<string> outputTables)
+    private Dictionary<string, string> _variants;
+
+    public bool TryGetVariantName(string variantKey, out string variantName)
+    {
+        if (_variants == null)
+        {
+            variantName = "";
+            return false;
+        }
+        return _variants.TryGetValue(variantKey, out variantName);
+    }
+
+    public bool TryGetVariantNameOrDefault(string variantKey, out string variantName)
+    {
+        if (_variants == null)
+        {
+            variantName = "";
+            return false;
+        }
+        if (_variants.TryGetValue(variantKey, out variantName))
+        {
+            return true;
+        }
+        return _variants.TryGetValue("default", out variantName);
+    }
+
+    public bool TryGetConstAlias(string alias, out string value)
+    {
+        return _constAliases.TryGetValue(alias, out value);
+    }
+
+    public DefAssembly(RawAssembly assembly, string target, List<string> outputTables, List<RawGroup> groupDefs, Dictionary<string, string> variants)
     {
         _targets = assembly.Targets;
         Target = GetTarget(target);
+        if (Target == null)
+        {
+            throw new Exception($"target:{target} is invalid");
+        }
+        foreach (var g in Target.Groups)
+        {
+            if (groupDefs.All(d => !d.Names.Contains(g)))
+            {
+                throw new Exception($"target:{target} group:`{g}` not defined");
+            }
+        }
+        _variants = variants;
+
+        foreach (var c in assembly.ConstAliases)
+        {
+            _constAliases.Add(c.Key, c.Value);
+        }
 
         foreach (var g in assembly.RefGroups)
         {
@@ -65,7 +135,7 @@ public class DefAssembly
         List<DefTable> originTables = GetAllTables();
         if (outputTables.Count == 0)
         {
-            _exportTables = originTables.Where(t => NeedExport(t.Groups)).ToList();
+            _exportTables = originTables.Where(t => NeedExport(t.Groups, groupDefs)).ToList();
         }
         else
         {
@@ -108,16 +178,16 @@ public class DefAssembly
             type.PostCompile();
         }
     }
-    
-    public bool NeedExport(List<string> groups)
+
+    public bool NeedExport(List<string> groups, List<RawGroup> groupDefs)
     {
         if (groups.Count == 0)
         {
-            return true;
+            return groupDefs == null || Target.Groups.Any(g => groupDefs.FirstOrDefault(gd => gd.Names.Contains(g))?.IsDefault == true);
         }
         return groups.Any(g => Target.Groups.Contains(g));
     }
-    
+
 
     private readonly Dictionary<string, DefRefGroup> _refGroups = new();
 
@@ -145,7 +215,7 @@ public class DefAssembly
         return TablesByFullName.TryGetValue(name, out var t) ? t : null;
     }
 
-  
+
     public List<DefTable> GetAllTables()
     {
         return TypeList.Where(t => t is DefTable).Cast<DefTable>().ToList();
@@ -224,7 +294,8 @@ public class DefAssembly
         }
         else
         {
-            return TEnum.Create(nullable, defType, tags); ;
+            return TEnum.Create(nullable, defType, tags);
+            ;
         }
     }
 
@@ -252,9 +323,12 @@ public class DefAssembly
         var defType = GetDefType(module, type);
         switch (defType)
         {
-            case DefBean d: return GetOrCreateTBean(d, nullable, tags);
-            case DefEnum d: return GetOrCreateTEnum(d, nullable, tags);
-            default: return null;
+            case DefBean d:
+                return GetOrCreateTBean(d, nullable, tags);
+            case DefEnum d:
+                return GetOrCreateTEnum(d, nullable, tags);
+            default:
+                return null;
         }
     }
 
@@ -312,24 +386,36 @@ public class DefAssembly
 
         switch (type)
         {
-            case "bool": return TBool.Create(nullable, tags);
+            case "bool":
+                return TBool.Create(nullable, tags);
             case "uint8":
-            case "byte": return TByte.Create(nullable, tags);
+            case "byte":
+                return TByte.Create(nullable, tags);
             case "int16":
-            case "short": return TShort.Create(nullable, tags);
+            case "short":
+                return TShort.Create(nullable, tags);
             case "int32":
-            case "int": return TInt.Create(nullable, tags);
+            case "int":
+                return TInt.Create(nullable, tags);
             case "int64":
-            case "long": return TLong.Create(nullable, tags, false);
-            case "bigint": return TLong.Create(nullable, tags, true);
+            case "long":
+                return TLong.Create(nullable, tags, false);
+            case "bigint":
+                return TLong.Create(nullable, tags, true);
             case "float32":
-            case "float": return TFloat.Create(nullable, tags);
+            case "float":
+                return TFloat.Create(nullable, tags);
             case "float64":
-            case "double": return TDouble.Create(nullable, tags);
-            case "string": return TString.Create(nullable, tags);
-            case "text": tags.Add("text", "1"); return TString.Create(nullable, tags);
+            case "double":
+                return TDouble.Create(nullable, tags);
+            case "string":
+                return TString.Create(nullable, tags);
+            case "text":
+                tags.Add("text", "1");
+                return TString.Create(nullable, tags);
             case "time":
-            case "datetime": return TDateTime.Create(nullable, tags);
+            case "datetime":
+                return TDateTime.Create(nullable, tags);
             default:
             {
                 var dtype = GetDefTType(module, type, nullable, tags);
@@ -365,7 +451,8 @@ public class DefAssembly
             {
                 return TArray.Create(false, containerTags, CreateType(module, elementType, true));
             }
-            case "list": return TList.Create(false, containerTags, CreateType(module, elementType, true), true);
+            case "list":
+                return TList.Create(false, containerTags, CreateType(module, elementType, true), true);
             case "set":
             {
                 TType type = CreateType(module, elementType, true);
@@ -375,7 +462,8 @@ public class DefAssembly
                 }
                 return TSet.Create(false, containerTags, type, false);
             }
-            case "map": return CreateMapType(module, containerTags, elementType, false);
+            case "map":
+                return CreateMapType(module, containerTags, elementType, false);
             default:
             {
                 throw new ArgumentException($"invalid container type. module:'{module}' container:'{containerType}' element:'{elementType}'");

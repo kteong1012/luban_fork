@@ -1,6 +1,27 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.CodeTarget;
 using Luban.DataTarget;
 using Luban.Defs;
+using Luban.L10N;
 using Luban.OutputSaver;
 using Luban.PostProcess;
 using Luban.RawDefs;
@@ -18,9 +39,9 @@ public class DefaultPipeline : IPipeline
     private LubanConfig _config;
 
     private PipelineArguments _args;
-    
+
     private RawAssembly _rawAssembly;
-    
+
     private DefAssembly _defAssembly;
 
     private GenerationContext _genCtx;
@@ -32,6 +53,7 @@ public class DefaultPipeline : IPipeline
     public void Run(PipelineArguments args)
     {
         _args = args;
+        _config = args.Config;
         LoadSchema();
         PrepareGenerationContext();
         ProcessTargets();
@@ -39,11 +61,8 @@ public class DefaultPipeline : IPipeline
 
     protected void LoadSchema()
     {
-        IConfigLoader rootLoader = new GlobalConfigLoader();
-        GenerationContext.GlobalConf = _config = rootLoader.Load(_args.ConfFile);
-
         string schemaCollectorName = _args.SchemaCollector;
-        s_logger.Info("load schema. collector: {}  path:{}", schemaCollectorName, _args.ConfFile);
+        s_logger.Info("load schema. collector: {}", schemaCollectorName);
         var schemaCollector = SchemaManager.Ins.CreateSchemaCollector(schemaCollectorName);
         schemaCollector.Load(_config);
         _rawAssembly = schemaCollector.CreateRawAssembly();
@@ -52,8 +71,9 @@ public class DefaultPipeline : IPipeline
     protected void PrepareGenerationContext()
     {
         s_logger.Debug("prepare generation context");
-        _defAssembly = new DefAssembly(_rawAssembly, _args.Target, _args.OutputTables);
-        
+        _genCtx = new GenerationContext();
+        _defAssembly = new DefAssembly(_rawAssembly, _args.Target, _args.OutputTables, _config.Groups, _args.Variants);
+
         var generationCtxBuilder = new GenerationContextBuilder
         {
             Assembly = _defAssembly,
@@ -61,13 +81,14 @@ public class DefaultPipeline : IPipeline
             ExcludeTags = _args.ExcludeTags,
             TimeZone = _args.TimeZone,
         };
-        _genCtx = new GenerationContext(generationCtxBuilder);
+        _genCtx.Init(generationCtxBuilder);
     }
 
     protected void LoadDatas()
     {
         _genCtx.LoadDatas();
         DoValidate();
+        ProcessL10N();
     }
 
     protected void DoValidate()
@@ -76,6 +97,14 @@ public class DefaultPipeline : IPipeline
         var v = new DataValidatorContext(_defAssembly);
         v.ValidateTables(_genCtx.Tables);
         s_logger.Info("validation end");
+    }
+
+    protected void ProcessL10N()
+    {
+        if (_genCtx.TextProvider != null)
+        {
+            _genCtx.TextProvider.ProcessDatas();
+        }
     }
 
     protected void ProcessTargets()
@@ -115,8 +144,9 @@ public class DefaultPipeline : IPipeline
         s_logger.Info("process code target:{} begin", name);
         var outputManifest = new OutputFileManifest(name, OutputType.Code);
         GenerationContext.CurrentCodeTarget = codeTarget;
+        codeTarget.ValidateDefinition(_genCtx);
         codeTarget.Handle(_genCtx, outputManifest);
-        
+
         outputManifest = PostProcess(BuiltinOptionNames.CodePostprocess, outputManifest);
         Save(outputManifest);
         s_logger.Info("process code target:{} end", name);
@@ -133,13 +163,13 @@ public class DefaultPipeline : IPipeline
         }
         return manifest;
     }
-    
+
     protected void ProcessDataTarget(string name, IDataExporter mission, IDataTarget dataTarget)
     {
         s_logger.Info("process data target:{} begin", name);
         var outputManifest = new OutputFileManifest(name, OutputType.Data);
         mission.Handle(_genCtx, dataTarget, outputManifest);
-        
+
         var newManifest = PostProcess(BuiltinOptionNames.DataPostprocess, outputManifest);
         Save(newManifest);
         s_logger.Info("process data target:{} end", name);
@@ -152,5 +182,5 @@ public class DefaultPipeline : IPipeline
         var saver = OutputSaverManager.Ins.GetOutputSaver(outputSaverName);
         saver.Save(manifest);
     }
-    
+
 }

@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Xml.Linq;
 using Luban.DataLoader;
 using Luban.DataLoader.Builtin.Excel;
@@ -20,10 +40,17 @@ public class ExcelSchemaLoader : SchemaLoaderBase
     {
         switch (Type)
         {
-            case "table": LoadTableListFromFile(fileName); break;
-            case "bean": LoadBeanListFromFile(fileName); break;
-            case "enum": LoadEnumListFromFile(fileName); break;
-            default: throw new Exception($"unknown type:{Type}");
+            case "table":
+                LoadTableListFromFile(fileName);
+                break;
+            case "bean":
+                LoadBeanListFromFile(fileName);
+                break;
+            case "enum":
+                LoadEnumListFromFile(fileName);
+                break;
+            default:
+                throw new Exception($"unknown type:{Type}");
         }
     }
 
@@ -55,14 +82,14 @@ public class ExcelSchemaLoader : SchemaLoaderBase
         {
             Assembly = new DefAssembly(new RawAssembly()
             {
-                Targets = new List<RawTarget>{new() { Name = "default", Manager = "Tables"}},
-            }, "default", new List<string>()),
+                Targets = new List<RawTarget> { new() { Name = "default", Manager = "Tables" } },
+            }, "default", new List<string>(), null, null),
         };
         defTableRecordType.PreCompile();
         defTableRecordType.Compile();
         defTableRecordType.PostCompile();
         var tableRecordType = TBean.Create(false, defTableRecordType, null);
-        
+
         (var actualFile, var sheetName) = FileUtil.SplitFileAndSheetName(FileUtil.Standardize(fileName));
         var records = DataLoaderManager.Ins.LoadTableFile(tableRecordType, actualFile, sheetName, new Dictionary<string, string>());
         foreach (var r in records)
@@ -82,6 +109,10 @@ public class ExcelSchemaLoader : SchemaLoaderBase
             string group = (data.GetField("group") as DString).Value.Trim();
             string comment = (data.GetField("comment") as DString).Value.Trim();
             bool readSchemaFromFile = (data.GetField("read_schema_from_file") as DBool).Value;
+            if (readSchemaFromFile && string.IsNullOrEmpty(TypeUtil.GetNamespace(valueType)))
+            {
+                valueType = TypeUtil.MakeFullName(module, valueType);
+            }
             string inputFile = (data.GetField("input") as DString).Value.Trim();
             // string patchInput = (data.GetField("patch_input") as DString).Value.Trim();
             string tags = (data.GetField("tags") as DString).Value.Trim();
@@ -89,15 +120,16 @@ public class ExcelSchemaLoader : SchemaLoaderBase
             // string options = (data.GetField("options") as DString).Value.Trim(); 
             var table = SchemaLoaderUtil.CreateTable(fileName, name, module, valueType, index, mode, group, comment, readSchemaFromFile, inputFile, tags, outputFile);
             Collector.Add(table);
-        };
+        }
+        ;
     }
 
     private void LoadEnumListFromFile(string fileName)
     {
         var ass = new DefAssembly(new RawAssembly()
         {
-            Targets = new List<RawTarget>{new() { Name = "default", Manager = "Tables"}},
-        }, "default", new List<string>());
+            Targets = new List<RawTarget> { new() { Name = "default", Manager = "Tables" } },
+        }, "default", new List<string>(), null, null);
 
         var enumItemType = new DefBean(new RawBean()
         {
@@ -151,7 +183,7 @@ public class ExcelSchemaLoader : SchemaLoaderBase
         defTableRecordType.Compile();
         defTableRecordType.PostCompile();
         var tableRecordType = TBean.Create(false, defTableRecordType, null);
-        
+
         (var actualFile, var sheetName) = FileUtil.SplitFileAndSheetName(FileUtil.Standardize(fileName));
         var records = DataLoaderManager.Ins.LoadTableFile(tableRecordType, actualFile, sheetName, new Dictionary<string, string>());
 
@@ -180,7 +212,7 @@ public class ExcelSchemaLoader : SchemaLoaderBase
                 Groups = SchemaLoaderUtil.CreateGroups((data.GetField("group") as DString).Value.Trim()),
                 Items = items.Datas.Cast<DBean>().Select(d => new EnumItem()
                 {
-                    Name = (d.GetField("name") as DString).Value,
+                    Name = (d.GetField("name") as DString).Value.Trim(),
                     Alias = (d.GetField("alias") as DString).Value,
                     Value = (d.GetField("value") as DString).Value,
                     Comment = (d.GetField("comment") as DString).Value,
@@ -188,15 +220,16 @@ public class ExcelSchemaLoader : SchemaLoaderBase
                 }).ToList(),
             };
             Collector.Add(curEnum);
-        };
+        }
+        ;
     }
 
     private void LoadBeanListFromFile(string fileName)
     {
         var ass = new DefAssembly(new RawAssembly()
         {
-            Targets = new List<RawTarget>{new() { Name = "default", Manager = "Tables"}},
-        }, "default", new List<string>());
+            Targets = new List<RawTarget> { new() { Name = "default", Manager = "Tables" } },
+        }, "default", new List<string>(), null, null);
 
         var defBeanFieldType = new DefBean(new RawBean()
         {
@@ -209,10 +242,12 @@ public class ExcelSchemaLoader : SchemaLoaderBase
             Fields = new List<RawField>
             {
                 new() { Name = "name", Type = "string" },
+                new() { Name = "alias", Type = "string" },
                 new() { Name = "type", Type = "string" },
                 new() { Name = "group", Type = "string" },
                 new() { Name = "comment", Type = "string" },
                 new() { Name = "tags", Type = "string" },
+                new() { Name = "variants", Type = "string" },
             }
         })
         {
@@ -290,14 +325,17 @@ public class ExcelSchemaLoader : SchemaLoaderBase
                 Fields = fields.Datas.Select(d => (DBean)d).Select(b => SchemaLoaderUtil.CreateField(
                     fileName,
                     (b.GetField("name") as DString).Value.Trim(),
+                    (b.GetField("alias") as DString).Value.Trim(),
                     (b.GetField("type") as DString).Value.Trim(),
                     (b.GetField("group") as DString).Value,
                     (b.GetField("comment") as DString).Value.Trim(),
                     (b.GetField("tags") as DString).Value.Trim(),
+                    (b.GetField("variants") as DString).Value.Trim(),
                     false
                 )).ToList(),
             };
             Collector.Add(curBean);
-        };
+        }
+        ;
     }
 }

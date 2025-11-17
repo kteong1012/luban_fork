@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Xml.Linq;
 using Luban.Defs;
 using Luban.RawDefs;
@@ -25,6 +45,7 @@ public class XmlSchemaLoader : SchemaLoaderBase
         _tagHandlers.Add("bean", AddBean);
         _tagHandlers.Add("table", AddTable);
         _tagHandlers.Add("refgroup", AddRefGroup);
+        _tagHandlers.Add("constalias", AddConstAlias);
     }
 
     public override void Load(string fileName)
@@ -54,7 +75,7 @@ public class XmlSchemaLoader : SchemaLoaderBase
         }
         _namespaceStack.Pop();
     }
-    
+
     protected void TryGetUpdateParent(XElement e, ref string parent)
     {
         string selfDefParent = XmlUtil.GetOptionalAttribute(e, "parent");
@@ -70,7 +91,7 @@ public class XmlSchemaLoader : SchemaLoaderBase
 
     private static readonly List<string> _enumOptionalAttrs = new() { "flags", "comment", "tags", "unique", "group" };
     private static readonly List<string> _enumRequiredAttrs = new() { "name" };
-    
+
     private static readonly List<string> _enumItemOptionalAttrs = new() { "value", "alias", "comment", "tags" };
     private static readonly List<string> _enumItemRequiredAttrs = new() { "name" };
 
@@ -86,7 +107,7 @@ public class XmlSchemaLoader : SchemaLoaderBase
             Tags = DefUtil.ParseAttrs(XmlUtil.GetOptionalAttribute(e, "tags")),
             IsUniqueItemId = XmlUtil.GetOptionBoolAttribute(e, "unique", true),
             Groups = SchemaLoaderUtil.CreateGroups(XmlUtil.GetOptionalAttribute(e, "group")),
-            Items = new (),
+            Items = new(),
             TypeMappers = new(),
         };
 
@@ -99,7 +120,7 @@ public class XmlSchemaLoader : SchemaLoaderBase
                     XmlSchemaUtil.ValidAttrKeys(_fileName, item, _enumItemOptionalAttrs, _enumItemRequiredAttrs);
                     en.Items.Add(new EnumItem()
                     {
-                        Name = XmlUtil.GetRequiredAttribute(item, "name"),
+                        Name = XmlUtil.GetRequiredAttribute(item, "name").Trim(),
                         Alias = XmlUtil.GetOptionalAttribute(item, "alias"),
                         Value = XmlUtil.GetOptionalAttribute(item, "value"),
                         Comment = XmlUtil.GetOptionalAttribute(item, "comment"),
@@ -121,7 +142,7 @@ public class XmlSchemaLoader : SchemaLoaderBase
         s_logger.Trace("add enum:{@}", en);
         Collector.Add(en);
     }
-    
+
     private readonly List<string> _tableOptionalAttrs = new() { "index", "mode", "group", "comment", "readSchemaFromFile", "output", "tags" };
     private readonly List<string> _tableRequireAttrs = new() { "name", "value", "input" };
 
@@ -132,6 +153,10 @@ public class XmlSchemaLoader : SchemaLoaderBase
         string module = CurNamespace;
         string valueType = XmlUtil.GetRequiredAttribute(e, "value");
         bool defineFromFile = XmlUtil.GetOptionBoolAttribute(e, "readSchemaFromFile");
+        if (string.IsNullOrEmpty(TypeUtil.GetNamespace(valueType)))
+        {
+            valueType = TypeUtil.MakeFullName(module, valueType);
+        }
         string index = XmlUtil.GetOptionalAttribute(e, "index");
         string group = XmlUtil.GetOptionalAttribute(e, "group");
         string comment = XmlUtil.GetOptionalAttribute(e, "comment");
@@ -139,16 +164,18 @@ public class XmlSchemaLoader : SchemaLoaderBase
         string mode = XmlUtil.GetOptionalAttribute(e, "mode");
         string tags = XmlUtil.GetOptionalAttribute(e, "tags");
         string output = XmlUtil.GetOptionalAttribute(e, "output");
-        Collector.Add(SchemaLoaderUtil.CreateTable( _fileName, name, module, valueType, index, mode, group, comment, defineFromFile, input, tags, output));
+        Collector.Add(SchemaLoaderUtil.CreateTable(_fileName, name, module, valueType, index, mode, group, comment, defineFromFile, input, tags, output));
     }
-    
+
     private static readonly List<string> _fieldOptionalAttrs = new()
     {
         // "ref",
         // "path",
+        "alias",
         "group",
         "comment",
         "tags",
+        "variants",
     };
 
     private static readonly List<string> _fieldRequireAttrs = new() { "name", "type" };
@@ -170,11 +197,14 @@ public class XmlSchemaLoader : SchemaLoaderBase
         //     typeStr = typeStr + "#(path=" + pathStr + ")";
         // }
 
-        return SchemaLoaderUtil.CreateField(_fileName, XmlUtil.GetRequiredAttribute(e, "name"),
+        return SchemaLoaderUtil.CreateField(_fileName,
+            XmlUtil.GetRequiredAttribute(e, "name"),
+            XmlUtil.GetOptionalAttribute(e, "alias"),
             typeStr,
             XmlUtil.GetOptionalAttribute(e, "group"),
             XmlUtil.GetOptionalAttribute(e, "comment"),
             XmlUtil.GetOptionalAttribute(e, "tags"),
+            XmlUtil.GetOptionalAttribute(e, "variants"),
             false
         );
     }
@@ -202,13 +232,13 @@ public class XmlSchemaLoader : SchemaLoaderBase
         };
         return mapper;
     }
-    
+
 
     protected void AddBean(XElement e)
     {
         AddBean(e, "");
     }
-    
+
     protected void AddBean(XElement e, string parent)
     {
         XmlSchemaUtil.ValidAttrKeys(_fileName, e, _beanOptionsAttrs, _beanRequireAttrs);
@@ -225,7 +255,7 @@ public class XmlSchemaLoader : SchemaLoaderBase
             Tags = DefUtil.ParseAttrs(XmlUtil.GetOptionalAttribute(e, "tags")),
             Groups = SchemaLoaderUtil.CreateGroups(XmlUtil.GetOptionalAttribute(e, "group")),
             Fields = new(),
-            TypeMappers = new (),
+            TypeMappers = new(),
         };
         var childBeans = new List<XElement>();
 
@@ -240,7 +270,8 @@ public class XmlSchemaLoader : SchemaLoaderBase
                     {
                         throw new LoadDefException($"定义文件:{_fileName} 类型:{b.FullName} 的多态子bean必须在所有成员字段 <var> 之后定义");
                     }
-                    b.Fields.Add(CreateField(fe)); ;
+                    b.Fields.Add(CreateField(fe));
+                    ;
                     break;
                 }
                 case "mapper":
@@ -273,5 +304,20 @@ public class XmlSchemaLoader : SchemaLoaderBase
     private void AddRefGroup(XElement e)
     {
         Collector.Add(XmlSchemaUtil.CreateRefGroup(_fileName, e));
+    }
+
+    private void AddConstAlias(XElement e)
+    {
+        string name = XmlUtil.GetRequiredAttribute(e, "name");
+        string alias = XmlUtil.GetRequiredAttribute(e, "value");
+        if (string.IsNullOrEmpty(name))
+        {
+            throw new LoadDefException($"定义文件:{_fileName} 中的constalias的name不能为空");
+        }
+        if (string.IsNullOrEmpty(alias))
+        {
+            throw new LoadDefException($"定义文件:{_fileName} 中的constalias `{name}`的value不能为空");
+        }
+        Collector.AddConstAlias(name, alias);
     }
 }

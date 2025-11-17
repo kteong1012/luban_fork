@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.DataLoader.Builtin.DataVisitors;
 using Luban.Datas;
 using Luban.Defs;
@@ -22,27 +42,24 @@ public class ExcelRowColumnDataSource : DataLoaderBase
     {
         s_logger.Trace("{} {}", rawUrl, sheetName);
         RawUrl = rawUrl;
-        
+
         foreach (RawSheet rawSheet in SheetLoadUtil.LoadRawSheets(rawUrl, sheetName, stream))
         {
-            var sheet = new RowColumnSheet(rawUrl, sheetName);
+            var sheet = new RowColumnSheet(rawUrl, sheetName, rawSheet.SheetName);
             sheet.Load(rawSheet);
             _sheets.Add(sheet);
         }
 
         if (_sheets.Count == 0)
         {
-            throw new Exception($"excel:{rawUrl} 不包含有效的单元薄(有效单元薄的A0单元格必须是##).");
-        }
-    }
-
-    public void Load(params RawSheet[] rawSheets)
-    {
-        foreach (RawSheet rawSheet in rawSheets)
-        {
-            var sheet = new RowColumnSheet("__intern__", rawSheet.TableName);
-            sheet.Load(rawSheet);
-            _sheets.Add(sheet);
+            if (!string.IsNullOrWhiteSpace(sheetName))
+            {
+                throw new Exception($"excel:‘{rawUrl}’ sheet:‘{sheetName}’ 不存在或者不是有效的单元簿(有效单元薄的A0单元格必须是##)");
+            }
+            else
+            {
+                throw new Exception($"excel: ‘{rawUrl}’ 不包含有效的单元薄(有效单元薄的A0单元格必须是##).");
+            }
         }
     }
 
@@ -67,12 +84,12 @@ public class ExcelRowColumnDataSource : DataLoaderBase
                         continue;
                     }
                     var data = (DBean)type.Apply(SheetDataCreator.Ins, sheet, row);
-                    datas.Add(new Record(data, sheet.RawUrl, DataUtil.ParseTags(tagStr)));
+                    datas.Add(new Record(data, sheet.UrlWithParams, DataUtil.ParseTags(tagStr)));
                 }
             }
             catch (DataCreateException dce)
             {
-                dce.OriginDataLocation = sheet.RawUrl;
+                dce.OriginDataLocation = sheet.UrlWithParams;
                 throw;
             }
             catch (Exception e)

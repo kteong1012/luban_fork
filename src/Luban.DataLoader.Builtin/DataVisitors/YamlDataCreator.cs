@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 ﻿using Luban.Datas;
 using Luban.Defs;
 using Luban.Types;
@@ -23,7 +43,7 @@ class YamlDataCreator : ITypeFuncVisitor<YamlNode, DefAssembly, DType>
 
     public DType Accept(TBool type, YamlNode x, DefAssembly y)
     {
-        return DBool.ValueOf(bool.Parse(GetLowerTextValue(x)));
+        return DBool.ValueOf(DataUtil.ParseBool(GetLowerTextValue(x)));
     }
 
     public DType Accept(TByte type, YamlNode x, DefAssembly y)
@@ -69,6 +89,26 @@ class YamlDataCreator : ITypeFuncVisitor<YamlNode, DefAssembly, DType>
     private static readonly YamlScalarNode s_typeNodeName = new(FieldNames.JsonTypeNameKey);
     private static readonly YamlScalarNode s_typeNodeNameFallback = new(FieldNames.FallbackTypeNameKey);
 
+    private bool TryGetBeanField(YamlMappingNode x, DefField field, out YamlNode ele)
+    {
+        if (!string.IsNullOrEmpty(field.CurrentVariantNameWithFieldName))
+        {
+            if (x.Children.TryGetValue(new YamlScalarNode(field.CurrentVariantNameWithFieldName), out ele))
+            {
+                return true;
+            }
+        }
+        if (x.Children.TryGetValue(new YamlScalarNode(field.Name), out ele))
+        {
+            return true;
+        }
+        if (!string.IsNullOrEmpty(field.Alias) && x.Children.TryGetValue(new YamlScalarNode(field.Alias), out ele))
+        {
+            return true;
+        }
+        return false;
+    }
+
     public DType Accept(TBean type, YamlNode x, DefAssembly y)
     {
         var m = (YamlMappingNode)x;
@@ -96,7 +136,7 @@ class YamlDataCreator : ITypeFuncVisitor<YamlNode, DefAssembly, DType>
         var fields = new List<DType>();
         foreach (DefField f in implBean.HierarchyFields)
         {
-            if (!m.Children.TryGetValue(new YamlScalarNode(f.Name), out var fele))
+            if (!TryGetBeanField(m, f, out var fele))
             {
                 if (f.CType.IsNullable)
                 {

@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -1201,19 +1221,32 @@ public sealed class ByteBuf : ICloneable, IEquatable<ByteBuf>
     {
         switch (obj)
         {
-            case int i: { WriteByte(FieldTag.INT); WriteInt(i); break; }
-            case long l: { WriteByte(FieldTag.LONG); WriteLong(l); break; }
-            case string s: { WriteByte(FieldTag.STRING); WriteString(s); break; }
-            case bool b: { WriteByte(FieldTag.BOOL); WriteBool(b); break; }
-            case short s2: { WriteByte(FieldTag.SHORT); WriteShort(s2); break; }
-            case float f: { WriteByte(FieldTag.FLOAT); WriteFloat(f); break; }
-            case double d: { WriteByte(FieldTag.DOUBLE); WriteDouble(d); break; }
-            case byte b2: { WriteByte(FieldTag.BYTE); WriteByte(b2); break; }
-            case byte[] b3: { WriteByte(FieldTag.BYTES); WriteBytes(b3); break; }
-            case Vector2 v2: { WriteByte(FieldTag.VECTOR2); WriteVector2(v2); break; }
-            case Vector3 v3: { WriteByte(FieldTag.VECTOR3); WriteVector3(v3); break; }
-            case Vector4 v4: { WriteByte(FieldTag.VECTOR4); WriteVector4(v4); break; }
-            default: throw new SerializationException("unknown object:" + obj);
+            case int i:
+            { WriteByte(FieldTag.INT); WriteInt(i); break; }
+            case long l:
+            { WriteByte(FieldTag.LONG); WriteLong(l); break; }
+            case string s:
+            { WriteByte(FieldTag.STRING); WriteString(s); break; }
+            case bool b:
+            { WriteByte(FieldTag.BOOL); WriteBool(b); break; }
+            case short s2:
+            { WriteByte(FieldTag.SHORT); WriteShort(s2); break; }
+            case float f:
+            { WriteByte(FieldTag.FLOAT); WriteFloat(f); break; }
+            case double d:
+            { WriteByte(FieldTag.DOUBLE); WriteDouble(d); break; }
+            case byte b2:
+            { WriteByte(FieldTag.BYTE); WriteByte(b2); break; }
+            case byte[] b3:
+            { WriteByte(FieldTag.BYTES); WriteBytes(b3); break; }
+            case Vector2 v2:
+            { WriteByte(FieldTag.VECTOR2); WriteVector2(v2); break; }
+            case Vector3 v3:
+            { WriteByte(FieldTag.VECTOR3); WriteVector3(v3); break; }
+            case Vector4 v4:
+            { WriteByte(FieldTag.VECTOR4); WriteVector4(v4); break; }
+            default:
+                throw new SerializationException("unknown object:" + obj);
         }
     }
 
@@ -1327,19 +1360,22 @@ public sealed class ByteBuf : ICloneable, IEquatable<ByteBuf>
             }
             else if (h < 0xc0)
             {
-                if (!CanRead(2)) { return EDeserializeError.NOT_ENOUGH; }
+                if (!CanRead(2))
+                { return EDeserializeError.NOT_ENOUGH; }
                 n = ((h & 0x3f) << 8) | Bytes[ReaderIndex + 1];
                 ReaderIndex += 2;
             }
             else if (h < 0xe0)
             {
-                if (!CanRead(3)) { return EDeserializeError.NOT_ENOUGH; }
+                if (!CanRead(3))
+                { return EDeserializeError.NOT_ENOUGH; }
                 n = ((h & 0x1f) << 16) | (Bytes[ReaderIndex + 1] << 8) | Bytes[ReaderIndex + 2];
                 ReaderIndex += 3;
             }
             else if (h < 0xf0)
             {
-                if (!CanRead(4)) { return EDeserializeError.NOT_ENOUGH; }
+                if (!CanRead(4))
+                { return EDeserializeError.NOT_ENOUGH; }
                 n = ((h & 0x0f) << 24) | (Bytes[ReaderIndex + 1] << 16) | (Bytes[ReaderIndex + 2] << 8) | Bytes[ReaderIndex + 3];
                 ReaderIndex += 4;
             }

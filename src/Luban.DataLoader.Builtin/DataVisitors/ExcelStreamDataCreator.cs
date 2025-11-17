@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.DataLoader.Builtin.Excel;
 using Luban.DataLoader.Builtin.Utils;
 using Luban.Datas;
@@ -45,7 +65,7 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
         {
             return null;
         }
-        if (!byte.TryParse(d.ToString(), out byte v))
+        if (!LoadDataUtil.TryParseExcelByteFromNumberOrConstAlias(d.ToString(), out byte v))
         {
             throw new InvalidExcelDataException($"{d} 不是 byte 类型值");
         }
@@ -59,7 +79,7 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
         {
             return null;
         }
-        if (!short.TryParse(d.ToString(), out short v))
+        if (!LoadDataUtil.TryParseExcelShortFromNumberOrConstAlias(d.ToString(), out short v))
         {
             throw new InvalidExcelDataException($"{d} 不是 short 类型值");
         }
@@ -81,7 +101,7 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
         //        return DInt.ValueOf(c);
         //    }
         //}
-        if (!int.TryParse(ds, out var v))
+        if (!LoadDataUtil.TryParseExcelIntFromNumberOrConstAlias(ds, out var v))
         {
             throw new InvalidExcelDataException($"{d} 不是 int 类型值");
         }
@@ -103,7 +123,7 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
         //        return DLong.ValueOf(c);
         //    }
         //}
-        if (!long.TryParse(ds, out var v))
+        if (!LoadDataUtil.TryParseExcelLongFromNumberOrConstAlias(ds, out var v))
         {
             throw new InvalidExcelDataException($"{d} 不是 long 类型值");
         }
@@ -155,35 +175,16 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
     public DType Accept(TString type, ExcelStream x)
     {
         var d = x.Read();
-        var s = ParseString(d);
+        var s = SheetDataCreator.ParseString(d, type.IsNullable);
         if (s == null)
         {
             if (type.IsNullable)
             {
                 return null;
             }
-            else
-            {
-                throw new InvalidExcelDataException("字段不是nullable类型，不能为null");
-            }
+            throw new InvalidExcelDataException("字段不是nullable类型，不能为null");
         }
         return DString.ValueOf(type, s);
-    }
-
-    private static string ParseString(object d)
-    {
-        if (d == null)
-        {
-            return string.Empty;
-        }
-        else if (d is string s)
-        {
-            return DataUtil.UnEscapeRawString(s);
-        }
-        else
-        {
-            return d.ToString();
-        }
     }
 
     public DType Accept(TDateTime type, ExcelStream x)
@@ -262,14 +263,20 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
         {
             if (type.IsNullable)
             {
-                string subType = x.Read().ToString().Trim();
-                if (subType == FieldNames.BeanNullType)
+                if (x.TryPeek(out object subTypeObj)) //ToString().Trim();
                 {
-                    return null;
-                }
-                else if (subType != FieldNames.BeanNotNullType && subType != originBean.Name)
-                {
-                    throw new Exception($"type:'{originBean.FullName}' 可空标识:'{subType}' 不合法（只能为{FieldNames.BeanNotNullType}或{FieldNames.BeanNullType}或{originBean.Name})");
+                    string subType = subTypeObj.ToString().Trim();
+
+                    if (subType == FieldNames.BeanNullType)
+                    {
+                        x.Read();
+                        return null;
+                    }
+                    else if (subType == FieldNames.BeanNotNullType || subType == originBean.Name)
+                    {
+                        x.Read();
+                        //throw new Exception($"type:'{originBean.FullName}' 可空标识:'{subType}' 不合法（只能为{FieldNames.BeanNotNullType}或{FieldNames.BeanNullType}或{originBean.Name})");
+                    }
                 }
             }
             return new DBean(type, originBean, CreateBeanFields(originBean, x));
@@ -279,7 +286,7 @@ class ExcelStreamDataCreator : ITypeFuncVisitor<ExcelStream, DType>
     private static ExcelStream TrySep(TType type, ExcelStream stream)
     {
         string sep = type.GetTag("sep");
-            
+
         if (!string.IsNullOrEmpty(sep) && !stream.TryReadEOF())
         {
             stream = new ExcelStream(stream.ReadCell(), sep);

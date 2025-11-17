@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.Datas;
 using Luban.Defs;
 using Luban.Types;
@@ -10,13 +30,23 @@ namespace Luban.DataValidator.Builtin.Path;
 public class PathValidator : DataValidatorBase
 {
     private static readonly NLog.Logger s_logger = NLog.LogManager.GetCurrentClassLogger();
-    
+
+    private readonly string _rootDir;
+
     private string _rawPattern;
 
     private IPathPattern _pathPattern;
 
     public PathValidator()
     {
+        if (!EnvManager.Current.TryGetOption(BuiltinOptionNames.PathValidatorFamily, BuiltinOptionNames.PathValidatorRootDir, false, out _rootDir))
+        {
+            string key = $"{BuiltinOptionNames.PathValidatorFamily}.{BuiltinOptionNames.PathValidatorRootDir}";
+            if (GenerationContext.Current.GetOrAddUniqueObject(key, () => this) == this)
+            {
+                s_logger.Warn("option '-x {0}=<rootValidationDir>' not found, path validation is disabled", key);
+            }
+        }
     }
 
     public override void Compile(DefField field, TType type)
@@ -27,7 +57,7 @@ public class PathValidator : DataValidatorBase
         {
             ThrowCompileError(field, "只支持string类型");
         }
-        
+
         string[] ss = _rawPattern.Split(';');
         if (ss.Length < 1)
         {
@@ -77,6 +107,15 @@ public class PathValidator : DataValidatorBase
                 _pathPattern = new Ue4ResourcePattern();
                 break;
             }
+            case "godot":
+            {
+                if (ss.Length != 1)
+                {
+                    ThrowCompileError(field, "");
+                }
+                _pathPattern = new GodotResourcePattern();
+                break;
+            }
             default:
             {
                 ThrowCompileError(field, $"不支持的path模式类型:{patType}");
@@ -89,15 +128,18 @@ public class PathValidator : DataValidatorBase
 
     public override void Validate(DataValidatorContext ctx, TType type, DType data)
     {
+        if (string.IsNullOrEmpty(_rootDir))
+        {
+            return;
+        }
+
         string value = ((DString)data).Value;
         if (value == "" && _pathPattern.EmptyAble)
         {
             return;
         }
 
-        string rootDir = EnvManager.Current.GetOption(BuiltinOptionNames.PathValidatorFamily, BuiltinOptionNames.PathValidatorRootDir, false);
-
-        if (!_pathPattern.ExistPath(rootDir, value))
+        if (!_pathPattern.ExistPath(_rootDir, value))
         {
             s_logger.Error("{}:{} (来自文件:{}) 找不到对应文件", RecordPath, value, Source);
             GenerationContext.Current.LogValidatorFail(this);

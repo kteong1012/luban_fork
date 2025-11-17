@@ -1,9 +1,30 @@
-﻿namespace Luban.DataLoader.Builtin.Excel;
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
-class TitleRow
+﻿using Luban.DataLoader.Builtin.Excel.DataParser;
+using System.Data;
+
+namespace Luban.DataLoader.Builtin.Excel;
+
+public class TitleRow
 {
-    public List<string> Tags { get; }
-
     public Title SelfTitle { get; }
 
     public object Current
@@ -87,18 +108,6 @@ class TitleRow
         }
     }
 
-    public ExcelStream AsStream(string sep)
-    {
-        if (string.IsNullOrEmpty(sep))
-        {
-            return new ExcelStream(Row, SelfTitle.FromIndex, SelfTitle.ToIndex, "", SelfTitle.Default);
-        }
-        else
-        {
-            return new ExcelStream(Row, SelfTitle.FromIndex, SelfTitle.ToIndex, sep, SelfTitle.Default);
-        }
-    }
-
     public bool HasSubFields => Fields != null || Elements != null;
 
     public TitleRow(Title selfTitle, List<Cell> row)
@@ -132,35 +141,17 @@ class TitleRow
         return SelfTitle.SubTitles.TryGetValue(name, out var title) ? title : null;
     }
 
-
     public TitleRow GetSubTitleNamedRow(string name)
     {
-        //Title title = Titles[name];
-        //return new TitleRow(title, this.Rows);
         return Fields.TryGetValue(name, out var r) ? r : null;
     }
 
-    public IEnumerable<ExcelStream> GetColumnOfMultiRows(string name, string sep)
+    public IDataParser GetDataParser()
     {
-        foreach (var ele in GetSubTitleNamedRow(name).Elements)
+        if (SelfTitle.Tags.TryGetValue(DataParserFactory.FORMAT_TAG_NAME, out var formatName))
         {
-            yield return ele.AsStream(sep);
+            return DataParserFactory.GetDataParser(formatName);
         }
-    }
-
-
-    public IEnumerable<ExcelStream> AsMultiRowStream(string sep)
-    {
-        throw new NotSupportedException();
-    }
-
-    public ExcelStream AsMultiRowConcatStream(string sep)
-    {
-        return new ExcelStream(Rows, SelfTitle.FromIndex, SelfTitle.ToIndex, sep, SelfTitle.Default);
-    }
-
-    public ExcelStream AsMultiRowConcatElements(string sep)
-    {
-        return new ExcelStream(Elements.Select(e => e.Row).ToList(), SelfTitle.FromIndex, SelfTitle.ToIndex, sep, SelfTitle.Default);
+        return DataParserFactory.GetDefaultDataParser();
     }
 }

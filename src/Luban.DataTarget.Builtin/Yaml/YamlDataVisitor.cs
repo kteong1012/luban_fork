@@ -1,3 +1,23 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using Luban.DataLoader;
 using Luban.DataLoader.Builtin;
 using Luban.Datas;
@@ -12,7 +32,7 @@ namespace Luban.DataExporter.Builtin.Yaml;
 public class YamlDataVisitor : IDataFuncVisitor<YamlNode>
 {
     public static YamlDataVisitor Ins { get; } = new();
-    
+
     private static YamlScalarNode ToPlainNode(string x)
     {
         return new YamlScalarNode(x) { Style = ScalarStyle.Plain };
@@ -70,7 +90,7 @@ public class YamlDataVisitor : IDataFuncVisitor<YamlNode>
 
     public YamlNode Accept(DDateTime type)
     {
-        return ToPlainNode(type.UnixTimeOfCurrentContext.ToString());
+        return ToPlainNode(type.UnixTimeOfCurrentContext().ToString());
     }
 
     public YamlNode Accept(DBean type)
@@ -130,7 +150,7 @@ public class YamlDataVisitor : IDataFuncVisitor<YamlNode>
     public YamlNode Accept(DMap type)
     {
         var seqNode = new YamlSequenceNode();
-        foreach (var d in type.Datas)
+        foreach (var d in type.DataMap)
         {
             var e = new YamlSequenceNode();
             e.Add(d.Key.Apply(this));

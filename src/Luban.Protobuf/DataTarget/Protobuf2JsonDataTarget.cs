@@ -1,0 +1,65 @@
+// Copyright 2025 Code Philosophy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+using System.Text;
+using System.Text.Json;
+using Luban.DataExporter.Builtin.Json;
+using Luban.DataTarget;
+using Luban.Defs;
+using Luban.Protobuf.DataVisitors;
+using Luban.Utils;
+
+namespace Luban.Protobuf.DataTarget;
+
+[DataTarget("protobuf2-json")]
+public class Protobuf2JsonDataTarget : JsonDataTarget
+{
+    protected override string DefaultOutputFileExt => "json";
+
+    protected override JsonDataVisitor ImplJsonDataVisitor => Protobuf2JsonDataVisitor.Ins;
+
+    public void WriteAsTable(List<Record> datas, Utf8JsonWriter x)
+    {
+        x.WriteStartObject();
+        // 如果修改了这个名字，请同时修改table.tpl
+        x.WritePropertyName("data_list");
+        x.WriteStartArray();
+        foreach (var d in datas)
+        {
+            d.Data.Apply(Protobuf2JsonDataVisitor.Ins, x);
+        }
+        x.WriteEndArray();
+        x.WriteEndObject();
+    }
+
+    public override OutputFile ExportTable(DefTable table, List<Record> records)
+    {
+        var ss = new MemoryStream();
+        var jsonWriter = new Utf8JsonWriter(ss, new JsonWriterOptions()
+        {
+            Indented = !UseCompactJson,
+            SkipValidation = false,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        });
+        WriteAsTable(records, jsonWriter);
+        jsonWriter.Flush();
+        return CreateOutputFile($"{table.OutputDataFile}.{OutputFileExt}", Encoding.UTF8.GetString(DataUtil.StreamToBytes(ss)));
+    }
+}
